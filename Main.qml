@@ -14,7 +14,7 @@ Item {
   property var cfg: pluginApi?.pluginSettings || ({})
   property var defaults: pluginApi?.manifest?.metadata?.defaultSettings || ({})
   property int pollInterval: cfg.pollInterval ?? defaults.pollInterval ?? 120
-  property string rivalcfgPath: cfg.rivalcfgPath ?? defaults.rivalcfgPath ?? "/home/charlie/.local/bin/rivalcfg"
+  property string rivalcfgPath: cfg.rivalcfgPath ?? defaults.rivalcfgPath ?? "rivalcfg"
 
   Timer {
     interval: root.pollInterval * 1000

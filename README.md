@@ -22,7 +22,8 @@ Settings are applied directly to the mouse when saved.
 - [Noctalia](https://noctalia.dev) shell (v3.6.0+)
 - [rivalcfg](https://github.com/flozz/rivalcfg) — CLI tool for SteelSeries mice
   - Download the latest release from the [releases page](https://github.com/flozz/rivalcfg/releases)
-  - The plugin expects the binary at `~/.local/bin/rivalcfg` by default (configurable in settings)
+  - The plugin expects `rivalcfg` to be available on your PATH by default
+  - If rivalcfg is installed elsewhere, set the full path in the plugin settings
 
 ## Installation
 
@@ -56,7 +57,7 @@ Right-click the widget and select **Settings**, or open it through the Noctalia 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | Poll interval | How often to check battery (seconds) | 120 |
-| rivalcfg path | Path to the rivalcfg binary | `~/.local/bin/rivalcfg` |
+| rivalcfg path | Path to the rivalcfg binary | `rivalcfg` (uses PATH) |
 | DPI Preset | Sensitivity presets the DPI button cycles through | 800 |
 | Fixed DPI | Lock to a single DPI (disables DPI button) | Disabled |
 | Polling rate | USB polling rate | 1000 Hz |

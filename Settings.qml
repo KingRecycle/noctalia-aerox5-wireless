@@ -14,7 +14,7 @@ ColumnLayout {
 
   // Widget settings
   property int pollInterval: cfg.pollInterval ?? defaults.pollInterval ?? 120
-  property string rivalcfgPath: cfg.rivalcfgPath ?? defaults.rivalcfgPath ?? "/home/charlie/.local/bin/rivalcfg"
+  property string rivalcfgPath: cfg.rivalcfgPath ?? defaults.rivalcfgPath ?? "rivalcfg"
 
   // Mouse settings
   property string sensitivity: cfg.sensitivity ?? defaults.sensitivity ?? "800"

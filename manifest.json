@@ -24,7 +24,7 @@
   "metadata": {
     "defaultSettings": {
       "pollInterval": 120,
-      "rivalcfgPath": "/home/charlie/.local/bin/rivalcfg",
+      "rivalcfgPath": "rivalcfg",
       "fixedDpi": "",
       "sensitivity": "800",
       "pollingRate": "1000",
