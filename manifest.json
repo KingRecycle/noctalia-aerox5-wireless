@@ -1,0 +1,41 @@
+{
+  "id": "aerox5-wireless",
+  "name": "Aerox 5 Wireless",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "Charlie",
+  "official": false,
+  "license": "MIT",
+  "description": "Noctalia bar widget for SteelSeries Aerox 5 Wireless — battery level, DPI, lighting, and power settings via rivalcfg.",
+  "tags": [
+    "Bar",
+    "Battery",
+    "Mouse",
+    "SteelSeries"
+  ],
+  "entryPoints": {
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml",
+    "settings": "Settings.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "pollInterval": 120,
+      "rivalcfgPath": "/home/charlie/.local/bin/rivalcfg",
+      "fixedDpi": "",
+      "sensitivity": "800",
+      "pollingRate": "1000",
+      "sleepTimer": 5,
+      "dimTimer": 30,
+      "topColor": "",
+      "middleColor": "",
+      "bottomColor": "",
+      "reactiveColor": "off",
+      "defaultLighting": "rainbow",
+      "rainbowEffect": false
+    }
+  }
+}
