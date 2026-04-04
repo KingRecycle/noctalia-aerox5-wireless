@@ -72,6 +72,10 @@ Right-click the widget and select **Settings**, or open it through the Noctalia 
 
 Built for the SteelSeries Aerox 5 Wireless in 2.4 GHz wireless mode. May work with other SteelSeries mice supported by rivalcfg — check [rivalcfg's device list](https://github.com/flozz/rivalcfg#supported-devices) for compatibility.
 
+## AI Disclosure
+
+This plugin was 100% generated using [Claude Code](https://claude.ai/code). I personally had no desire to learn a plugin system for a one-off plugin, so I let AI do it for me. I respect the opinion of those who would rather not use AI-generated code, so I'm disclosing this upfront so you can make your own informed choice to use the plugin or not.
+
 ## License
 
 MIT
