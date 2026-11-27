@@ -264,6 +264,27 @@ local function colorField(key, label, allowOff, lockedOff)
   }))
 end
 
+-- An On/Off button. Noctalia 5.6 has no switch element.
+local function toggleField(key, label, lockedOff)
+  local on = current(key) == true
+  return field(label, ui.row({ gap = 8, align = "center", flexGrow = 1 }, {
+    ui.button({
+      key = key .. "-toggle",
+      text = on and tr("panel.on") or tr("panel.off"),
+      variant = on and "primary" or "outline",
+      selected = on,
+      controlSize = "sm",
+      enabled = ready() and not lockedOff,
+      onClick = function()
+        drafts:set(key, not on)
+        send(key, not on, 0)
+        render()
+      end,
+    }),
+    ui.label({ text = tr("panel.reactive.hint"), fontSize = 11, color = "on_surface_variant" }),
+  }))
+end
+
 local function header()
   return ui.row({ gap = 8, align = "center" }, compact({
     ui.glyph({ name = "mouse", size = 20, color = "primary" }),
@@ -330,8 +351,16 @@ end
 
 function render()
   local locked = settings.fixed_dpi ~= ""
-  -- While lighting is off the saved colors aren't on the mouse, so they wait.
-  local lightingOff = current("default_lighting") == "off"
+  -- Controls the current lighting mode doesn't use gray out. Their saved
+  -- values come back when the mode uses them again.
+  local mode = current("lighting")
+  local reactiveOn = current("reactive") == true
+  local note = nil
+  if mode == "off" then
+    note = tr("panel.lighting_note.off")
+  elseif mode == "rainbow" then
+    note = tr("panel.lighting_note.rainbow")
+  end
   local notice = disabledText()
 
   local rows = compact({
@@ -361,16 +390,15 @@ function render()
     end),
 
     sectionTitle(tr("panel.section.lighting")),
-    selectField("default_lighting", tr("panel.default_lighting.label"), labelsFor(mouse.LIGHTING, function(v)
-      return tr("panel.default_lighting.options." .. v)
+    selectField("lighting", tr("panel.lighting.label"), labelsFor(mouse.LIGHTING, function(v)
+      return tr("panel.lighting.options." .. v)
     end), mouse.LIGHTING),
-    lightingOff and ui.label({ text = tr("panel.lighting_off"), fontSize = 11, color = "on_surface_variant" }) or false,
-    selectField("rainbow", tr("panel.rainbow.label"), { tr("panel.rainbow.options.off"), tr("panel.rainbow.options.on") }, { false, true },
-      { enabled = ready() and not lightingOff }),
-    colorField("top_color", tr("panel.top_color.label"), false, lightingOff),
-    colorField("middle_color", tr("panel.middle_color.label"), false, lightingOff),
-    colorField("bottom_color", tr("panel.bottom_color.label"), false, lightingOff),
-    colorField("reactive_color", tr("panel.reactive_color.label"), true, lightingOff),
+    note and ui.label({ text = note, fontSize = 11, color = "on_surface_variant" }) or false,
+    colorField("top_color", tr("panel.top_color.label"), false, mode ~= "zones"),
+    colorField("middle_color", tr("panel.middle_color.label"), false, mode ~= "zones"),
+    colorField("bottom_color", tr("panel.bottom_color.label"), false, mode ~= "zones"),
+    toggleField("reactive", tr("panel.reactive.label"), mode == "off"),
+    colorField("reactive_color", tr("panel.reactive_color.label"), false, mode == "off" or not reactiveOn),
   })
 
   panel.render(ui.scroll({ flexGrow = 1 }, {

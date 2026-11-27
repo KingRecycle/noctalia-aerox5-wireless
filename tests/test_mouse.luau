@@ -19,57 +19,10 @@ local function with(overrides: { [string]: any })
 	return s
 end
 
-function T.test_legacy_import()
-	local s, extras = mouse.fromLegacy({
-		sensitivity = "800, 1600, 3200",
-		fixedDpi = "2400",
-		pollingRate = "1000",
-		sleepTimer = 15,
-		dimTimer = 30,
-		reactiveColor = "off",
-		defaultLighting = "reactive",
-		rainbowEffect = false,
-		pollInterval = 60,
-		rivalcfgPath = "/home/x/rivalcfg",
-	})
-	A.eq(s.presets, "800, 1600, 3200")
-	A.eq(s.fixed_dpi, "2400")
-	A.eq(s.polling_rate, "1000")
-	A.eq(s.sleep_timer, 15)
-	A.eq(s.dim_timer, 30)
-	A.eq(s.reactive_color, "off")
-	A.eq(s.default_lighting, "reactive")
-	A.eq(s.rainbow, false)
-	A.eq(extras, { poll_interval = 60, rivalcfg_path = "/home/x/rivalcfg" })
-end
-
-function T.test_legacy_bad_values_fall_back()
-	local s = mouse.fromLegacy({ sleepTimer = 99, pollingRate = "7", defaultLighting = "disco" })
-	local d = mouse.defaults()
-	A.eq(s.sleep_timer, d.sleep_timer)
-	A.eq(s.polling_rate, d.polling_rate)
-	A.eq(s.default_lighting, d.default_lighting)
-end
-
 function T.test_legacy_empty()
 	local s, extras = mouse.fromLegacy({})
 	A.eq(s, mouse.defaults())
 	A.eq(extras, {})
-end
-
-function T.test_stored_round_trip()
-	local s = with({ fixed_dpi = "2400", presets = "800, 1600, 3200", top_color = "#00ff00", rainbow = true, sleep_timer = 15 })
-	A.eq(mouse.fromStored(s), s)
-end
-
-function T.test_stored_bad_fields_fall_back()
-	local d = mouse.defaults()
-	local s = mouse.fromStored({ presets = "1, 2", fixed_dpi = "2400", sleep_timer = "15", top_color = "blue!", rainbow = "yes" })
-	A.eq(s.fixed_dpi, "2400")
-	A.eq(s.presets, d.presets)
-	A.eq(s.sleep_timer, d.sleep_timer)
-	A.eq(s.top_color, "")
-	A.eq(s.rainbow, false)
 end
 
 function T.test_color_choice_off()
@@ -145,15 +98,8 @@ function T.test_timers()
 	A.eq((mouse.change(s, "dim_timer", -1)), nil)
 end
 
-function T.test_lighting()
-	local s = mouse.defaults()
-	A.eq(select(2, mouse.change(s, "default_lighting", "reactive-rainbow")), { "-d", "reactive-rainbow" })
-	A.eq((mouse.change(s, "default_lighting", "disco")), nil)
-	A.eq(select(2, mouse.change(s, "default_lighting", "disco")), "invalid")
-end
-
 function T.test_rejects_bad_colors()
-	local s = mouse.defaults()
+	local s = with({ lighting = "zones" })
 	for _, bad in { "#12345", "blue!", "" } do
 		local new, err = mouse.change(s, "top_color", bad)
 		A.eq(new, nil, bad)
@@ -169,72 +115,117 @@ function T.test_colors_accepted()
 	A.eq(mouse.normalizeColor("off", false), nil)
 end
 
-function T.test_color_clears_rainbow()
-	local new, args = mouse.change(with({ rainbow = true }), "middle_color", "lime")
-	A.eq(new and new.rainbow, false)
-	A.eq(args, { "--middle-color", "lime" })
+function T.test_unknown_key()
+	local new, err = mouse.change(mouse.defaults(), "dpi", 1)
+	A.eq(new, nil)
+	A.eq(err, "invalid")
 end
 
-function T.test_reactive()
-	A.eq(select(2, mouse.change(mouse.defaults(), "reactive_color", "off")), { "-a", "off" })
-end
-
-function T.test_rainbow_on()
-	A.eq(select(2, mouse.change(mouse.defaults(), "rainbow", true)), { "-e" })
-end
-
-function T.test_rainbow_off_defaults()
-	local new, args = mouse.change(with({ rainbow = true }), "rainbow", false)
-	A.eq(args, { "--top-color", "red", "--middle-color", "lime", "--bottom-color", "blue" })
-	A.eq(new and new.top_color, "red")
-	A.eq(new and new.middle_color, "lime")
-	A.eq(new and new.bottom_color, "blue")
-end
-
-function T.test_rainbow_off_keeps_colors()
-	local _, args = mouse.change(with({ rainbow = true, top_color = "#00ff00" }), "rainbow", false)
-	A.eq({ args[1], args[2] }, { "--top-color", "#00ff00" })
-end
-
-local function lit(overrides)
-	return with({
-		top_color = "red",
-		middle_color = "lime",
-		bottom_color = "blue",
-		reactive_color = "#b0c6ff",
-		default_lighting = (overrides and overrides.default_lighting) or "reactive",
-		rainbow = (overrides and overrides.rainbow) or false,
+function T.test_legacy_import()
+	local s, extras = mouse.fromLegacy({
+		sensitivity = "800, 1600, 3200",
+		fixedDpi = "2400",
+		pollingRate = "1000",
+		sleepTimer = 15,
+		dimTimer = 30,
+		reactiveColor = "off",
+		defaultLighting = "reactive",
+		rainbowEffect = false,
+		pollInterval = 60,
+		rivalcfgPath = "/home/x/rivalcfg",
 	})
+	A.eq(s.presets, "800, 1600, 3200")
+	A.eq(s.fixed_dpi, "2400")
+	A.eq(s.polling_rate, "1000")
+	A.eq(s.sleep_timer, 15)
+	A.eq(s.dim_timer, 30)
+	A.eq(s.lighting, "zones")
+	A.eq(s.reactive, false)
+	A.eq(s.reactive_color, "")
+	A.eq(extras, { poll_interval = 60, rivalcfg_path = "/home/x/rivalcfg" })
 end
 
-function T.test_lighting_off_darkens()
-	local new, args = mouse.change(lit(), "default_lighting", "off")
+function T.test_legacy_lighting_modes()
+	A.eq(mouse.fromLegacy({ defaultLighting = "off" }).lighting, "off")
+	A.eq(mouse.fromLegacy({ rainbowEffect = true }).lighting, "rainbow")
+	local s = mouse.fromLegacy({ reactiveColor = "red", defaultLighting = "reactive" })
+	A.eq(s.reactive, true)
+	A.eq(s.reactive_color, "red")
+end
+
+function T.test_legacy_bad_values_fall_back()
+	local s = mouse.fromLegacy({ sleepTimer = 99, pollingRate = "7" })
+	local d = mouse.defaults()
+	A.eq(s.sleep_timer, d.sleep_timer)
+	A.eq(s.polling_rate, d.polling_rate)
+end
+
+function T.test_stored_round_trip()
+	local s = with({ fixed_dpi = "2400", presets = "800, 1600, 3200", top_color = "#00ff00", lighting = "zones", reactive = true, reactive_color = "#b0c6ff", sleep_timer = 15 })
+	A.eq(mouse.fromStored(s), s)
+end
+
+function T.test_stored_bad_fields_fall_back()
+	local d = mouse.defaults()
+	local s = mouse.fromStored({ presets = "1, 2", fixed_dpi = "2400", sleep_timer = "15", top_color = "blue!", lighting = "disco", reactive = "yes" })
+	A.eq(s.fixed_dpi, "2400")
+	A.eq(s.presets, d.presets)
+	A.eq(s.sleep_timer, d.sleep_timer)
+	A.eq(s.top_color, "")
+	A.eq(s.lighting, d.lighting)
+	A.eq(s.reactive, d.reactive)
+end
+
+-- mouse.json written before the lighting mode existed: the live state was
+-- the rainbow effect flag plus the reactive color.
+function T.test_stored_old_lighting_fields()
+	local s = mouse.fromStored({ default_lighting = "rainbow", rainbow = false, reactive_color = "#b0c6ff", top_color = "red" })
+	A.eq(s.lighting, "zones")
+	A.eq(s.reactive, true)
+	A.eq(s.reactive_color, "#b0c6ff")
+	A.eq(mouse.fromStored({ default_lighting = "off", reactive_color = "#b0c6ff" }).lighting, "off")
+	A.eq(mouse.fromStored({ default_lighting = "reactive", rainbow = true }).lighting, "rainbow")
+	A.eq(mouse.fromStored({ reactive_color = "off" }).reactive, false)
+end
+
+local function lit(overrides: { [string]: any }?)
+	local s = with({ top_color = "red", middle_color = "lime", bottom_color = "blue", reactive_color = "#b0c6ff", lighting = "zones", reactive = true })
+	for k, v in overrides or {} do
+		s[k] = v
+	end
+	return s
+end
+
+function T.test_mode_off()
+	local new, args = mouse.change(lit(), "lighting", "off")
 	A.eq(args, {
 		"-d", "off", "-a", "off",
 		"--top-color", "#000000", "--middle-color", "#000000", "--bottom-color", "#000000",
 	})
-	A.eq(new and new.default_lighting, "off")
-	-- The saved colors stay, so turning lighting back on restores them.
+	A.eq(new and new.lighting, "off")
+	-- Saved colors and the reactive choice stay for when lighting comes back.
 	A.eq(new and new.top_color, "red")
-	A.eq(new and new.reactive_color, "#b0c6ff")
+	A.eq(new and new.reactive, true)
 end
 
-function T.test_lighting_on_restores_colors()
-	local _, args = mouse.change(lit({ default_lighting = "off" }), "default_lighting", "reactive")
+function T.test_mode_zones_with_reactive()
+	local _, args = mouse.change(lit({ lighting = "off" }), "lighting", "zones")
 	A.eq(args, {
 		"-d", "reactive", "-a", "#b0c6ff",
 		"--top-color", "red", "--middle-color", "lime", "--bottom-color", "blue",
 	})
 end
 
-function T.test_lighting_on_restores_rainbow()
-	local _, args = mouse.change(lit({ default_lighting = "off", rainbow = true }), "default_lighting", "rainbow")
-	A.eq(args, { "-d", "rainbow", "-a", "#b0c6ff", "-e" })
+function T.test_mode_zones_without_reactive()
+	local _, args = mouse.change(lit({ lighting = "rainbow", reactive = false }), "lighting", "zones")
+	A.eq(args, {
+		"-d", "reactive", "-a", "off",
+		"--top-color", "red", "--middle-color", "lime", "--bottom-color", "blue",
+	})
 end
 
-function T.test_lighting_on_empty_colors_use_defaults()
-	local s = with({ default_lighting = "off" })
-	local new, args = mouse.change(s, "default_lighting", "reactive")
+function T.test_mode_zones_empty_colors_use_defaults()
+	local new, args = mouse.change(with({ lighting = "off" }), "lighting", "zones")
 	A.eq(args, {
 		"-d", "reactive", "-a", "off",
 		"--top-color", "red", "--middle-color", "lime", "--bottom-color", "blue",
@@ -242,30 +233,59 @@ function T.test_lighting_on_empty_colors_use_defaults()
 	A.eq(new and new.middle_color, "lime")
 end
 
-function T.test_mode_change_while_lit()
-	A.eq(select(2, mouse.change(lit(), "default_lighting", "rainbow")), { "-d", "rainbow" })
+function T.test_mode_rainbow()
+	A.eq(select(2, mouse.change(lit(), "lighting", "rainbow")), { "-d", "reactive-rainbow", "-a", "#b0c6ff", "-e" })
+	A.eq(select(2, mouse.change(lit({ reactive = false }), "lighting", "rainbow")), { "-d", "rainbow", "-a", "off", "-e" })
 end
 
-function T.test_colors_locked_when_off()
-	local s = lit({ default_lighting = "off" })
-	for _, case in { { "top_color", "red" }, { "reactive_color", "off" }, { "rainbow", true } } do
-		local new, err = mouse.change(s, case[1], case[2])
-		A.eq(new, nil, case[1])
-		A.eq(err, "lighting_off", case[1])
+function T.test_mode_invalid()
+	A.eq(select(2, mouse.change(lit(), "lighting", "disco")), "invalid")
+end
+
+function T.test_reactive_toggle()
+	local new, args = mouse.change(lit(), "reactive", false)
+	A.eq(args, { "-d", "reactive", "-a", "off" })
+	A.eq(new and new.reactive, false)
+	A.eq(select(2, mouse.change(lit({ reactive = false, lighting = "rainbow" }), "reactive", true)), { "-d", "reactive-rainbow", "-a", "#b0c6ff" })
+	A.eq(select(2, mouse.change(lit(), "reactive", "yes")), "invalid")
+end
+
+function T.test_reactive_on_without_color_uses_white()
+	local new, args = mouse.change(lit({ reactive = false, reactive_color = "" }), "reactive", true)
+	A.eq(args, { "-d", "reactive", "-a", "#ffffff" })
+	A.eq(new and new.reactive_color, "#ffffff")
+end
+
+function T.test_reactive_color()
+	A.eq(select(2, mouse.change(lit(), "reactive_color", "Red")), { "-a", "red" })
+	A.eq(select(2, mouse.change(lit(), "reactive_color", "off")), "invalid")
+end
+
+function T.test_zone_color()
+	local new, args = mouse.change(lit(), "middle_color", "lime")
+	A.eq(args, { "--middle-color", "lime" })
+	A.eq(new and new.middle_color, "lime")
+end
+
+function T.test_locks()
+	local function err(s, key, value)
+		return select(2, mouse.change(s, key, value))
 	end
-end
-
-function T.test_unknown_key()
-	local new, err = mouse.change(mouse.defaults(), "dpi", 1)
-	A.eq(new, nil)
-	A.eq(err, "invalid")
+	A.eq(err(lit({ lighting = "off" }), "top_color", "red"), "lighting_off")
+	A.eq(err(lit({ lighting = "off" }), "reactive", false), "lighting_off")
+	A.eq(err(lit({ lighting = "off" }), "reactive_color", "red"), "lighting_off")
+	A.eq(err(lit({ lighting = "rainbow" }), "top_color", "red"), "zones_only")
+	A.eq(err(lit({ reactive = false }), "reactive_color", "red"), "reactive_off")
 end
 
 function T.test_no_mutation()
-	local s = with({ rainbow = true })
+	local s = lit()
 	local before = copy(s)
 	mouse.change(s, "fixed_dpi", "2400")
-	mouse.change(s, "rainbow", false)
+	mouse.change(s, "lighting", "off")
+	mouse.change(s, "lighting", "rainbow")
+	mouse.change(with({ lighting = "off" }), "lighting", "zones")
+	mouse.change(s, "reactive", true)
 	mouse.change(s, "top_color", "red")
 	mouse.change(s, "sleep_timer", 3)
 	A.eq(s, before)

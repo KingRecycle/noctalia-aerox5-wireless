@@ -17,7 +17,9 @@
     "rivalcfg_failed": "rivalcfg failed: {message}",
     "rivalcfg_unknown": "rivalcfg failed with exit code {code}",
     "rivalcfg_not_started": "Couldn't run rivalcfg ({path}). Check the rivalcfg path setting.",
-    "lighting_off": "Turn lighting on to change the colors"
+    "lighting_off": "Lighting is off. Pick a mode first.",
+    "zones_only": "Zone colors apply in Custom zones mode",
+    "reactive_off": "Turn Reactive on to change its color"
   },
   "panel": {
     "refresh": "Check battery now",
@@ -71,22 +73,6 @@
     "off": "Off",
     "minutes": "{n} min",
     "seconds": "{n} s",
-    "default_lighting": {
-      "label": "Default lighting",
-      "options": {
-        "off": "Off",
-        "reactive": "Reactive",
-        "rainbow": "Rainbow",
-        "reactive-rainbow": "Reactive rainbow"
-      }
-    },
-    "rainbow": {
-      "label": "Rainbow effect",
-      "options": {
-        "off": "Off",
-        "on": "On"
-      }
-    },
     "top_color": {
       "label": "Top color"
     },
@@ -119,6 +105,22 @@
       "custom": "Custom",
       "placeholder": "Not set"
     },
-    "lighting_off": "Lighting is off. Pick a lighting mode to change the colors."
+    "lighting": {
+      "label": "Mode",
+      "options": {
+        "off": "Off",
+        "zones": "Custom zones",
+        "rainbow": "Rainbow cycle"
+      }
+    },
+    "lighting_note": {
+      "off": "Lighting is off. Pick a mode to change the colors.",
+      "rainbow": "Zone colors apply in Custom zones mode."
+    },
+    "reactive": {
+      "label": "Reactive",
+      "hint": "Flash on click"
+    },
+    "on": "On"
   }
 }

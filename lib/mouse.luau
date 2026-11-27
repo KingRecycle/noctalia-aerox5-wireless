@@ -12,8 +12,8 @@ export type Settings = {
 	middle_color: string,
 	bottom_color: string,
 	reactive_color: string,
-	default_lighting: string,
-	rainbow: boolean,
+	lighting: string,
+	reactive: boolean,
 }
 
 local M = {}
@@ -29,7 +29,9 @@ M.PRESETS = {
 -- "" means fixed DPI is off and the preset list is in use.
 M.FIXED_DPI = { "", "400", "800", "1200", "1600", "2400", "3200", "6400" }
 M.POLLING = { "125", "250", "500", "1000" }
-M.LIGHTING = { "off", "reactive", "rainbow", "reactive-rainbow" }
+-- Lighting modes: LEDs dark, the three zone colors, or the rainbow cycle.
+-- Whether clicks flash the reactive color is a separate on/off.
+M.LIGHTING = { "off", "zones", "rainbow" }
 
 -- Preset LED colors for the panel's dropdowns. Sent as hex, so they don't
 -- depend on rivalcfg's list of color names. aliases are names that show as
@@ -63,9 +65,9 @@ function M.defaults(): Settings
 		top_color = "",
 		middle_color = "",
 		bottom_color = "",
-		reactive_color = "off",
-		default_lighting = "rainbow",
-		rainbow = false,
+		reactive_color = "",
+		lighting = "rainbow",
+		reactive = false,
 	}
 end
 
@@ -117,13 +119,79 @@ local function appendZones(s: Settings, new: Settings, args: { string })
 	end
 end
 
--- Settings the mouse can't show while lighting is off. Their saved values
--- come back when a lighting mode is picked again.
-local LIGHTING_LOCKED = { top_color = true, middle_color = true, bottom_color = true, reactive_color = true, rainbow = true }
 local DARK = "#000000"
+-- Click flash color when the reactive switch goes on before a color was picked.
+local REACTIVE_DEFAULT = "#ffffff"
+
+-- rivalcfg's startup lighting for a mode. -d only takes effect at the next
+-- power-on, so lightingArgs also sends what the LEDs should show now.
+local function startup(s: Settings): string
+	if s.lighting == "off" then
+		return "off"
+	elseif s.lighting == "rainbow" then
+		return if s.reactive then "reactive-rainbow" else "rainbow"
+	end
+	return "reactive"
+end
+
+local function flash(s: Settings): string
+	if s.lighting ~= "off" and s.reactive and s.reactive_color ~= "" then
+		return s.reactive_color
+	end
+	return "off"
+end
+
+-- Everything the mouse needs to show s's lighting now and after a restart.
+-- Zone colors that were never set get rivalcfg's defaults, stored in new.
+local function lightingArgs(s: Settings, new: Settings): { string }
+	local args = { "-d", startup(s), "-a", flash(s) }
+	if s.lighting == "off" then
+		for _, zone in ZONES do
+			table.insert(args, ZONE_FLAGS[zone])
+			table.insert(args, DARK)
+		end
+	elseif s.lighting == "rainbow" then
+		table.insert(args, "-e")
+	else
+		appendZones(s, new, args)
+	end
+	return args
+end
+
+-- Why a setting can't change in the current lighting, or nil if it can.
+local function lightingLock(s: Settings, key: string): string?
+	local isZone = ZONE_FLAGS[key] ~= nil
+	if s.lighting == "off" and (isZone or key == "reactive" or key == "reactive_color") then
+		return "lighting_off"
+	elseif isZone and s.lighting ~= "zones" then
+		return "zones_only"
+	elseif key == "reactive_color" and not s.reactive then
+		return "reactive_off"
+	end
+	return nil
+end
 
 local function fixedArg(dpi: string): string
 	return table.concat({ dpi, dpi, dpi, dpi, dpi }, ", ")
+end
+
+-- Maps the old fields (rivalcfg's startup lighting, the rainbow effect flag
+-- and a reactive color that could be "off") to a mode and the reactive
+-- on/off. The rainbow flag held what the LEDs showed, so it wins.
+local function fromOldLighting(defaultLighting: any, rainbow: any, reactiveColor: any): (string?, boolean, string)
+	local lighting: string? = nil
+	if defaultLighting == "off" then
+		lighting = "off"
+	elseif rainbow == true then
+		lighting = "rainbow"
+	elseif defaultLighting ~= nil or rainbow ~= nil then
+		lighting = "zones"
+	end
+	local c = M.normalizeColor(reactiveColor, true)
+	if c == nil or c == "off" then
+		return lighting, false, ""
+	end
+	return lighting, true, c
 end
 
 -- Reads the QML plugin's settings.json table. Values that don't validate fall
@@ -152,16 +220,8 @@ function M.fromLegacy(t: { [string]: any }): (Settings, { poll_interval: number?
 			(s :: any)[zone] = c
 		end
 	end
-	local reactive = M.normalizeColor(t.reactiveColor, true)
-	if reactive then
-		s.reactive_color = reactive
-	end
-	if oneOf(M.LIGHTING, t.defaultLighting) then
-		s.default_lighting = t.defaultLighting
-	end
-	if type(t.rainbowEffect) == "boolean" then
-		s.rainbow = t.rainbowEffect
-	end
+	local lighting, reactive, reactiveColor = fromOldLighting(t.defaultLighting, t.rainbowEffect, t.reactiveColor)
+	s.lighting, s.reactive, s.reactive_color = lighting or s.lighting, reactive, reactiveColor
 
 	local extras: { poll_interval: number?, rivalcfg_path: string? } = {}
 	if intIn(t.pollInterval, 30, 300) then
@@ -220,15 +280,13 @@ function M.fromStored(t: { [string]: any }): Settings
 			(s :: any)[zone] = c
 		end
 	end
-	local reactive = M.normalizeColor(t.reactive_color, true)
-	if reactive then
-		s.reactive_color = reactive
-	end
-	if oneOf(M.LIGHTING, t.default_lighting) then
-		s.default_lighting = t.default_lighting
-	end
-	if type(t.rainbow) == "boolean" then
-		s.rainbow = t.rainbow
+	if oneOf(M.LIGHTING, t.lighting) then
+		s.lighting = t.lighting
+		s.reactive = t.reactive == true
+		s.reactive_color = M.normalizeColor(t.reactive_color, false) or ""
+	else
+		local lighting, reactive, reactiveColor = fromOldLighting(t.default_lighting, t.rainbow, t.reactive_color)
+		s.lighting, s.reactive, s.reactive_color = lighting or s.lighting, reactive, reactiveColor
 	end
 	return s
 end
@@ -237,8 +295,9 @@ end
 -- and the rivalcfg arguments, without the binary. On failure returns nil and
 -- "invalid" or "presets_locked".
 function M.change(s: Settings, key: string, value: any): (Settings?, { string } | string)
-	if s.default_lighting == "off" and LIGHTING_LOCKED[key] then
-		return nil, "lighting_off"
+	local lock = lightingLock(s, key)
+	if lock then
+		return nil, lock
 	end
 	local new = copy(s)
 	if key == "presets" then
@@ -280,52 +339,29 @@ function M.change(s: Settings, key: string, value: any): (Settings?, { string } 
 			return nil, "invalid"
 		end
 		(new :: any)[key] = c
-		-- Setting a zone color turns the rainbow effect off on the mouse.
-		new.rainbow = false
 		return new, { ZONE_FLAGS[key], c }
 	elseif key == "reactive_color" then
-		local c = M.normalizeColor(value, true)
+		local c = M.normalizeColor(value, false)
 		if not c then
 			return nil, "invalid"
 		end
 		new.reactive_color = c
 		return new, { "-a", c }
-	elseif key == "default_lighting" then
+	elseif key == "lighting" then
 		if not oneOf(M.LIGHTING, value) then
 			return nil, "invalid"
 		end
-		new.default_lighting = value
-		local args = { "-d", value }
-		if value == "off" and s.default_lighting ~= "off" then
-			-- -d only applies at the next power-on. Dark zones and no click
-			-- flash turn the LEDs off now, without losing the saved colors.
-			table.move({ "-a", "off" }, 1, 2, #args + 1, args)
-			for _, zone in ZONES do
-				table.insert(args, ZONE_FLAGS[zone])
-				table.insert(args, DARK)
-			end
-		elseif value ~= "off" and s.default_lighting == "off" then
-			-- Lighting comes back on: restore the saved click flash and colors.
-			table.insert(args, "-a")
-			table.insert(args, s.reactive_color)
-			if s.rainbow then
-				table.insert(args, "-e")
-			else
-				appendZones(s, new, args)
-			end
-		end
-		return new, args
-	elseif key == "rainbow" then
+		new.lighting = value
+		return new, lightingArgs(new, new)
+	elseif key == "reactive" then
 		if type(value) ~= "boolean" then
 			return nil, "invalid"
 		end
-		new.rainbow = value
-		if value then
-			return new, { "-e" }
+		new.reactive = value
+		if value and new.reactive_color == "" then
+			new.reactive_color = REACTIVE_DEFAULT
 		end
-		local args = {}
-		appendZones(s, new, args)
-		return new, args
+		return new, { "-d", startup(new), "-a", flash(new) }
 	end
 	return nil, "invalid"
 end
