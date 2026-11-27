@@ -7,7 +7,8 @@
 -- Settings: pluginDataDir()/mouse.json holds the last values applied. The
 -- first run imports the QML plugin's settings.json, applying nothing.
 -- State: aerox5.battery = Battery + checked_at (ms), aerox5.settings =
--- Settings, aerox5.busy = true while rivalcfg runs.
+-- Settings, aerox5.busy = true while rivalcfg runs, aerox5.applied =
+-- { key, value, ok, n } after each change finishes or is refused.
 -- Commands: aerox5.cmd = { op = "set", key, value, delay_ms } | { op = "refresh" },
 -- cleared after handling.
 
@@ -127,7 +128,7 @@ local function poll()
     if result.timedOut then
       code = 1
     end
-    local b = battery.parse(code or 3, result.stdout or "", current)
+    local b = battery.parse(code or 3, result.stdout or "", current, result.stderr)
     publishBattery(b)
     nextPollAt = noctalia.nowMs() + battery.nextPollMs(b, pollIntervalS())
   end, POLL_TIMEOUT_MS)
@@ -151,9 +152,20 @@ local function failMessage(result)
   return noctalia.tr("error.rivalcfg_failed", { message = last })
 end
 
+-- Tells the panel a change finished, so it can drop or revert that field's draft.
+local appliedCount = 0
+local function publishApplied(key, value, ok)
+  appliedCount += 1
+  noctalia.state.set("aerox5.applied", { key = key, value = value, ok = ok, n = appliedCount })
+end
+
+-- The dongle can be briefly gone while it rebinds after a rivalcfg call.
+local POLL_AFTER_APPLY_MS = 2000
+
 local function finishApply()
   pending:done()
   noctalia.state.set("aerox5.busy", false)
+  nextPollAt = math.max(nextPollAt, noctalia.nowMs() + POLL_AFTER_APPLY_MS)
 end
 
 local function applyNext()
@@ -165,6 +177,7 @@ local function applyNext()
   if new == nil then
     finishApply()
     publishSettings()
+    publishApplied(entry.key, entry.value, false)
     noctalia.notifyError(title(), noctalia.tr("error." .. args, { value = tostring(entry.value) }))
     return
   end
@@ -172,7 +185,8 @@ local function applyNext()
   noctalia.state.set("aerox5.busy", true)
   local path = rivalcfgPath()
   local launched = noctalia.runAsync({ path, table.unpack(args) }, function(result)
-    if result.exitCode == 0 and not result.timedOut then
+    local ok = result.exitCode == 0 and not result.timedOut
+    if ok then
       settings = new
       saveSettings()
     elseif result.exitCode == 127 and noctalia.string.trim(result.stderr or "") == "" then
@@ -182,10 +196,12 @@ local function applyNext()
       noctalia.notifyError(title(), failMessage(result))
     end
     publishSettings()
+    publishApplied(entry.key, entry.value, ok)
     finishApply()
   end, RIVALCFG_TIMEOUT_MS)
   if not launched then
     publishSettings()
+    publishApplied(entry.key, entry.value, false)
     finishApply()
     noctalia.notifyError(title(), noctalia.tr("error.rivalcfg_not_started", { path = path }))
   end
@@ -194,6 +210,7 @@ end
 local function handleSet(cmd)
   if current == nil or current.state ~= "ok" then
     publishSettings()
+    publishApplied(cmd.key, cmd.value, false)
     noctalia.notifyError(title(), noctalia.tr("error.not_ready"))
     return
   end

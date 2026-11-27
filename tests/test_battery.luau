@@ -58,6 +58,22 @@ function T.test_next_poll()
 	A.eq(battery.nextPollMs({ state = "ok", level = 85, charging = false }, 120), 120000)
 end
 
+function T.test_crash_is_error()
+	-- An uncaught Python exception exits 1 with a traceback on stderr.
+	local b = battery.parse(1, "", { state = "ok", level = 85, charging = false }, "Traceback (most recent call last):\nPermissionError")
+	A.eq(b.state, "error")
+	A.eq(b.level, nil)
+end
+
+function T.test_asleep_with_empty_stderr()
+	A.eq(battery.parse(1, "Unable to get the battery level. Is the mouse turned on?", nil, "").state, "asleep")
+end
+
+function T.test_next_poll_not_ok()
+	A.eq(battery.nextPollMs({ state = "no_dongle", charging = false }, 120), 10000)
+	A.eq(battery.nextPollMs({ state = "error", charging = false }, 120), 10000)
+end
+
 function T.test_next_poll_asleep()
 	A.eq(battery.nextPollMs({ state = "asleep", level = 85, charging = false }, 120), 10000)
 end

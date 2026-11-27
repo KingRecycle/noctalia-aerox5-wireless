@@ -10,11 +10,16 @@ export type Battery = {
 
 local M = {}
 
-local ASLEEP_POLL_MS = 10000
+-- Re-poll this often while the mouse isn't answering, so it comes back fast.
+local RETRY_POLL_MS = 10000
 
 -- Exit codes from bin/aerox5-battery: 0 ok, 1 mouse unreachable, 2 no dongle.
-function M.parse(exitCode: number, stdout: string, previous: Battery?): Battery
-	if exitCode == 1 then
+-- The reader reports an unreachable mouse on stdout. Exit 1 with stderr is an
+-- uncaught Python exception (a missing udev rule, say), not a sleeping mouse.
+function M.parse(exitCode: number, stdout: string, previous: Battery?, stderr: string?): Battery
+	if exitCode == 1 and stderr ~= nil and string.match(stderr, "%S") then
+		return { state = "error", level = nil, charging = false }
+	elseif exitCode == 1 then
 		return { state = "asleep", level = previous and previous.level, charging = false }
 	elseif exitCode == 2 then
 		return { state = "no_dongle", level = nil, charging = false }
@@ -46,8 +51,8 @@ function M.band(b: Battery): "high" | "mid" | "low" | "charging" | "asleep" | "u
 end
 
 function M.nextPollMs(b: Battery, intervalS: number): number
-	if b.state == "asleep" then
-		return ASLEEP_POLL_MS
+	if b.state ~= "ok" then
+		return RETRY_POLL_MS
 	end
 	return intervalS * 1000
 end

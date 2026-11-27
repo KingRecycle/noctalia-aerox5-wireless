@@ -3,6 +3,7 @@ local modules = {
 	{ "battery", require("./test_battery") },
 	{ "mouse", require("./test_mouse") },
 	{ "queue", require("./test_queue") },
+	{ "drafts", require("./test_drafts") },
 }
 
 local passed, failed = 0, 0

@@ -7,6 +7,7 @@
 
 local battery = require("./lib/battery.luau")
 local mouse = require("./lib/mouse.luau")
+local draftsLib = require("./lib/drafts.luau")
 
 local PANEL_ID = "kingrecycle/aerox5-wireless:panel"
 local SLIDER_DELAY_MS = 1000
@@ -16,11 +17,8 @@ local closeButton = true
 local reading = noctalia.state.get("aerox5.battery")
 local settings = noctalia.state.get("aerox5.settings") or mouse.defaults()
 local busy = noctalia.state.get("aerox5.busy") == true
--- Values shown while a slider or color field waits to be applied.
-local drafts = {}
--- Bumped when the service publishes settings, so color fields show the
--- stored value again (a rejected color reverts).
-local inputGeneration = 0
+-- Values shown while a change waits for the service, per setting.
+local drafts = draftsLib.new()
 
 local BAND_FILL = {
   high = "primary",
@@ -44,7 +42,7 @@ local function ready()
 end
 
 local function current(key)
-  local d = drafts[key]
+  local d = drafts:get(key)
   if d ~= nil then
     return d
   end
@@ -125,7 +123,9 @@ local function selectField(key, label, options, values, extra)
     onChange = function(value)
       local picked = values[(tonumber(value) or 0) + 1]
       if picked ~= nil and picked ~= current(key) then
+        drafts:set(key, picked)
         send(key, picked, 0)
+        render()
       end
     end,
   }
@@ -150,7 +150,7 @@ local function sliderField(key, label, max, step, format)
       onChange = function(v)
         local n = math.floor((tonumber(v) or 0) + 0.5)
         if n ~= current(key) then
-          drafts[key] = n
+          drafts:set(key, n)
           send(key, n, SLIDER_DELAY_MS)
           render()
         end
@@ -162,18 +162,18 @@ end
 
 local function colorField(key, label, placeholder)
   return field(label, ui.input({
-    key = `{key}-{inputGeneration}`,
+    key = `{key}-{drafts:generation(key)}`,
     value = settings[key] or "",
     placeholder = placeholder,
     controlSize = "sm",
     flexGrow = 1,
     enabled = ready(),
     onChange = function(value)
-      drafts[key] = value
+      drafts:set(key, value)
       send(key, value, SLIDER_DELAY_MS)
     end,
     onSubmit = function()
-      local value = drafts[key]
+      local value = drafts:get(key)
       if value ~= nil then
         send(key, value, 0)
       end
@@ -297,8 +297,7 @@ end
 
 function onOpen(_context)
   closeButton = noctalia.getSetting("shell.show_close_buttons") ~= false
-  drafts = {}
-  inputGeneration += 1
+  drafts:reset()
   panel.setWantsSecondTicks(true)
   render()
 end
@@ -312,9 +311,14 @@ noctalia.state.watch("aerox5.settings", function(value)
   if type(value) == "table" then
     settings = value
   end
-  drafts = {}
-  inputGeneration += 1
   render()
+end)
+
+noctalia.state.watch("aerox5.applied", function(event)
+  if type(event) == "table" and type(event.key) == "string" then
+    drafts:applied(event.key, event.value, event.ok == true)
+    render()
+  end
 end)
 
 noctalia.state.watch("aerox5.busy", function(value)
