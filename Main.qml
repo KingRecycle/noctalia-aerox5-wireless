@@ -27,7 +27,9 @@ Item {
   Process {
     id: batteryProcess
     running: false
-    command: [root.rivalcfgPath, "--battery-level"]
+    // hidraw reader, not rivalcfg: rivalcfg (libusb) unbinds/rebinds the dongle's
+    // kernel driver every call, which makes games re-scan input devices (~200 ms freeze).
+    command: ["aerox5-battery"]
 
     stdout: StdioCollector {
       onStreamFinished: {
