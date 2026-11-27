@@ -29,9 +29,10 @@ M.PRESETS = {
 -- "" means fixed DPI is off and the preset list is in use.
 M.FIXED_DPI = { "", "400", "800", "1200", "1600", "2400", "3200", "6400" }
 M.POLLING = { "125", "250", "500", "1000" }
--- Lighting modes: LEDs dark, the three zone colors, or the rainbow cycle.
--- Whether clicks flash the reactive color is a separate on/off.
-M.LIGHTING = { "off", "zones", "rainbow" }
+-- Lighting modes: LEDs dark, dark with a flash on each click, the three zone
+-- colors, or the rainbow cycle. In zones and rainbow, whether clicks flash
+-- is a separate on/off.
+M.LIGHTING = { "off", "reactive", "zones", "rainbow" }
 
 -- Preset LED colors for the panel's dropdowns. Sent as hex, so they don't
 -- depend on rivalcfg's list of color names. aliases are names that show as
@@ -126,7 +127,9 @@ local REACTIVE_DEFAULT = "#ffffff"
 -- rivalcfg's startup lighting for a mode. -d only takes effect at the next
 -- power-on, so lightingArgs also sends what the LEDs should show now.
 local function startup(s: Settings): string
-	if s.lighting == "off" then
+	-- Startup "off" still flashes the reactive color on clicks (seen on the
+	-- Aerox 5), which is exactly reactive-only.
+	if s.lighting == "off" or s.lighting == "reactive" then
 		return "off"
 	elseif s.lighting == "rainbow" then
 		return if s.reactive then "reactive-rainbow" else "rainbow"
@@ -135,7 +138,8 @@ local function startup(s: Settings): string
 end
 
 local function flash(s: Settings): string
-	if s.lighting ~= "off" and s.reactive and s.reactive_color ~= "" then
+	local wanted = s.lighting == "reactive" or (s.lighting ~= "off" and s.reactive)
+	if wanted and s.reactive_color ~= "" then
 		return s.reactive_color
 	end
 	return "off"
@@ -145,7 +149,7 @@ end
 -- Zone colors that were never set get rivalcfg's defaults, stored in new.
 local function lightingArgs(s: Settings, new: Settings): { string }
 	local args = { "-d", startup(s), "-a", flash(s) }
-	if s.lighting == "off" then
+	if s.lighting == "off" or s.lighting == "reactive" then
 		for _, zone in ZONES do
 			table.insert(args, ZONE_FLAGS[zone])
 			table.insert(args, DARK)
@@ -165,7 +169,9 @@ local function lightingLock(s: Settings, key: string): string?
 		return "lighting_off"
 	elseif isZone and s.lighting ~= "zones" then
 		return "zones_only"
-	elseif key == "reactive_color" and not s.reactive then
+	elseif key == "reactive" and s.lighting == "reactive" then
+		return "reactive_mode"
+	elseif key == "reactive_color" and not s.reactive and s.lighting ~= "reactive" then
 		return "reactive_off"
 	end
 	return nil
@@ -352,6 +358,9 @@ function M.change(s: Settings, key: string, value: any): (Settings?, { string } 
 			return nil, "invalid"
 		end
 		new.lighting = value
+		if value == "reactive" and new.reactive_color == "" then
+			new.reactive_color = REACTIVE_DEFAULT
+		end
 		return new, lightingArgs(new, new)
 	elseif key == "reactive" then
 		if type(value) ~= "boolean" then

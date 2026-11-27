@@ -238,6 +238,29 @@ function T.test_mode_rainbow()
 	A.eq(select(2, mouse.change(lit({ reactive = false }), "lighting", "rainbow")), { "-d", "rainbow", "-a", "off", "-e" })
 end
 
+function T.test_mode_reactive_only()
+	local new, args = mouse.change(lit({ reactive = false }), "lighting", "reactive")
+	A.eq(args, {
+		"-d", "off", "-a", "#b0c6ff",
+		"--top-color", "#000000", "--middle-color", "#000000", "--bottom-color", "#000000",
+	})
+	A.eq(new and new.lighting, "reactive")
+	A.eq(new and new.top_color, "red")
+end
+
+function T.test_mode_reactive_only_default_color()
+	local new, args = mouse.change(with({ lighting = "zones" }), "lighting", "reactive")
+	A.eq(args and args[4], "#ffffff")
+	A.eq(new and new.reactive_color, "#ffffff")
+end
+
+function T.test_reactive_only_locks()
+	local s = lit({ lighting = "reactive", reactive = false })
+	A.eq(select(2, mouse.change(s, "top_color", "red")), "zones_only")
+	A.eq(select(2, mouse.change(s, "reactive", true)), "reactive_mode")
+	A.eq(select(2, mouse.change(s, "reactive_color", "red")), { "-a", "red" })
+end
+
 function T.test_mode_invalid()
 	A.eq(select(2, mouse.change(lit(), "lighting", "disco")), "invalid")
 end

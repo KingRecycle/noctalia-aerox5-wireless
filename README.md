@@ -23,11 +23,11 @@ Click the widget to open the panel. It shows the battery and every mouse setting
 
 - Performance has the DPI presets the mouse's DPI button cycles through, a fixed DPI that locks one value, and the polling rate (125 to 1000 Hz).
 - Power has the sleep timer (0 to 20 min) and the LED dim timer (0 to 1200 s). 0 turns either one off.
-- Lighting has the mode (Off, Custom zones or Rainbow cycle), the top, middle and bottom LED colors, and Reactive, which flashes a color of your choice on each click.
+- Lighting has the mode (Off, Reactive only, Custom zones or Rainbow cycle), the top, middle and bottom LED colors, and Reactive, which flashes a color of your choice on each click.
 
 A change reaches the mouse as soon as you pick it. Sliders and color fields wait until about one second after your last change, so dragging a slider sends one rivalcfg call, not dozens. Press Enter in a color field to send it at once.
 
-The lighting mode takes effect right away and sticks after a restart. Off turns the LEDs dark with no click flash. Custom zones shows your three zone colors. Rainbow cycle cycles colors on its own. Reactive is a separate on/off for the click flash, used by Custom zones and Rainbow cycle. Controls the current mode doesn't use gray out, and the plugin keeps their values for when you switch back.
+The lighting mode takes effect right away and sticks after a restart. Off turns the LEDs dark with no click flash. Reactive only keeps them dark and flashes your reactive color on each click. Custom zones shows your three zone colors. Rainbow cycle cycles colors on its own. Reactive is a separate on/off for the click flash, used by Custom zones and Rainbow cycle. Controls the current mode doesn't use gray out, and the plugin keeps their values for when you switch back.
 
 rivalcfg's own lighting setting only applies at the next power-on, and the mouse flashes the reactive color on clicks whatever that setting says. So each mode change sends both the startup setting and what the LEDs should show now.
 

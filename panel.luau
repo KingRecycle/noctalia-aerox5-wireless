@@ -265,8 +265,8 @@ local function colorField(key, label, allowOff, lockedOff)
 end
 
 -- An On/Off button. Noctalia 5.6 has no switch element.
-local function toggleField(key, label, lockedOff)
-  local on = current(key) == true
+local function toggleField(key, label, lockedOff, forcedOn)
+  local on = forcedOn or current(key) == true
   return field(label, ui.row({ gap = 8, align = "center", flexGrow = 1 }, {
     ui.button({
       key = key .. "-toggle",
@@ -358,6 +358,8 @@ function render()
   local note = nil
   if mode == "off" then
     note = tr("panel.lighting_note.off")
+  elseif mode == "reactive" then
+    note = tr("panel.lighting_note.reactive")
   elseif mode == "rainbow" then
     note = tr("panel.lighting_note.rainbow")
   end
@@ -397,8 +399,9 @@ function render()
     colorField("top_color", tr("panel.top_color.label"), false, mode ~= "zones"),
     colorField("middle_color", tr("panel.middle_color.label"), false, mode ~= "zones"),
     colorField("bottom_color", tr("panel.bottom_color.label"), false, mode ~= "zones"),
-    toggleField("reactive", tr("panel.reactive.label"), mode == "off"),
-    colorField("reactive_color", tr("panel.reactive_color.label"), false, mode == "off" or not reactiveOn),
+    -- Reactive only always flashes, so its switch shows On and can't change.
+    toggleField("reactive", tr("panel.reactive.label"), mode == "off" or mode == "reactive", mode == "reactive"),
+    colorField("reactive_color", tr("panel.reactive_color.label"), false, not (mode == "reactive" or (mode ~= "off" and reactiveOn))),
   })
 
   panel.render(ui.scroll({ flexGrow = 1 }, {

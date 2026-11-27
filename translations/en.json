@@ -19,7 +19,8 @@
     "rivalcfg_not_started": "Couldn't run rivalcfg ({path}). Check the rivalcfg path setting.",
     "lighting_off": "Lighting is off. Pick a mode first.",
     "zones_only": "Zone colors apply in Custom zones mode",
-    "reactive_off": "Turn Reactive on to change its color"
+    "reactive_off": "Turn Reactive on to change its color",
+    "reactive_mode": "Reactive only always flashes. Pick another mode to turn the flash off."
   },
   "panel": {
     "refresh": "Check battery now",
@@ -109,13 +110,15 @@
       "label": "Mode",
       "options": {
         "off": "Off",
+        "reactive": "Reactive only",
         "zones": "Custom zones",
         "rainbow": "Rainbow cycle"
       }
     },
     "lighting_note": {
       "off": "Lighting is off. Pick a mode to change the colors.",
-      "rainbow": "Zone colors apply in Custom zones mode."
+      "rainbow": "Zone colors apply in Custom zones mode.",
+      "reactive": "LEDs stay dark and flash on each click."
     },
     "reactive": {
       "label": "Reactive",
