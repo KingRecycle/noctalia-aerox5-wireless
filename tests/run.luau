@@ -2,6 +2,7 @@
 local modules = {
 	{ "battery", require("./test_battery") },
 	{ "mouse", require("./test_mouse") },
+	{ "queue", require("./test_queue") },
 }
 
 local passed, failed = 0, 0
