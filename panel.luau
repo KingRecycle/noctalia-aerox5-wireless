@@ -160,24 +160,107 @@ local function sliderField(key, label, max, step, format)
   }))
 end
 
-local function colorField(key, label, placeholder)
-  return field(label, ui.input({
-    key = `{key}-{drafts:generation(key)}`,
-    value = settings[key] or "",
-    placeholder = placeholder,
-    controlSize = "sm",
-    flexGrow = 1,
-    enabled = ready(),
-    onChange = function(value)
-      drafts:set(key, value)
-      send(key, value, SLIDER_DELAY_MS)
-    end,
-    onSubmit = function()
-      local value = drafts:get(key)
-      if value ~= nil then
-        send(key, value, 0)
-      end
-    end,
+-- Palette roles offered in the color dropdowns. Picking one sends the
+-- palette's current hex once; the mouse doesn't follow later theme changes.
+local THEME_ROLES = { "primary", "secondary", "tertiary", "error" }
+-- Set when Custom is picked, so the dropdown shows it until a value is typed.
+local customPicked = {}
+
+local function themeHexes()
+  local out = {}
+  for _, role in THEME_ROLES do
+    table.insert(out, mouse.normalizeColor(noctalia.getColor(role) or "", false) or "")
+  end
+  return out
+end
+
+-- A dropdown of presets, palette colors and Custom, next to a text field for
+-- any name or hex. Both send the same setting.
+local function colorField(key, label, allowOff)
+  local value = current(key) or ""
+  local hexes = themeHexes()
+
+  -- Dropdown entries, each with the value it sends (nil for Custom).
+  local labels, values = {}, {}
+  if allowOff then
+    table.insert(labels, tr("panel.color.off"))
+    table.insert(values, "off")
+  end
+  for _, p in mouse.COLOR_PRESETS do
+    table.insert(labels, tr("panel.color." .. p.id))
+    table.insert(values, p.hex)
+  end
+  for i, role in THEME_ROLES do
+    table.insert(labels, tr("panel.color.theme", { role = tr("panel.color.role." .. role) }))
+    table.insert(values, hexes[i])
+  end
+  table.insert(labels, tr("panel.color.custom"))
+  local customIndex = #labels
+
+  local offset = allowOff and 1 or 0
+  local selected = customIndex
+  if not customPicked[key] then
+    local kind, i = mouse.colorChoice(value, allowOff, hexes)
+    if kind == "off" then
+      selected = 1
+    elseif kind == "preset" then
+      selected = offset + i
+    elseif kind == "theme" then
+      selected = offset + #mouse.COLOR_PRESETS + i
+    end
+  end
+
+  local function sendColor(v, delayMs)
+    local text = noctalia.string.trim(v or "")
+    drafts:set(key, v)
+    -- An empty field means "not chosen yet", so there's nothing to send.
+    if text ~= "" then
+      send(key, text, delayMs)
+    end
+  end
+
+  return field(label, ui.row({ gap = 6, align = "center", flexGrow = 1 }, {
+    ui.select({
+      key = key .. "-choice",
+      options = labels,
+      selectedIndex = selected - 1,
+      controlSize = "sm",
+      flexGrow = 1,
+      enabled = ready(),
+      onChange = function(index)
+        local i = (tonumber(index) or 0) + 1
+        if i == customIndex then
+          customPicked[key] = true
+          render()
+          return
+        end
+        local picked = values[i]
+        customPicked[key] = nil
+        if picked ~= nil and picked ~= mouse.normalizeColor(current(key) or "", allowOff) then
+          sendColor(picked, 0)
+          drafts:remount(key)
+          render()
+        end
+      end,
+    }),
+    ui.input({
+      key = `{key}-{drafts:generation(key)}`,
+      value = value,
+      placeholder = tr("panel.color.placeholder"),
+      controlSize = "sm",
+      width = 96,
+      enabled = ready(),
+      onChange = function(v)
+        customPicked[key] = nil
+        sendColor(v, SLIDER_DELAY_MS)
+      end,
+      onSubmit = function()
+        local v = drafts:get(key)
+        if v ~= nil then
+          sendColor(v, 0)
+        end
+      end,
+    }),
   }))
 end
 
@@ -280,10 +363,10 @@ function render()
       return tr("panel.default_lighting.options." .. v)
     end), mouse.LIGHTING),
     selectField("rainbow", tr("panel.rainbow.label"), { tr("panel.rainbow.options.off"), tr("panel.rainbow.options.on") }, { false, true }),
-    colorField("top_color", tr("panel.top_color.label"), tr("panel.color_placeholder")),
-    colorField("middle_color", tr("panel.middle_color.label"), tr("panel.color_placeholder")),
-    colorField("bottom_color", tr("panel.bottom_color.label"), tr("panel.color_placeholder")),
-    colorField("reactive_color", tr("panel.reactive_color.label"), tr("panel.reactive_placeholder")),
+    colorField("top_color", tr("panel.top_color.label"), false),
+    colorField("middle_color", tr("panel.middle_color.label"), false),
+    colorField("bottom_color", tr("panel.bottom_color.label"), false),
+    colorField("reactive_color", tr("panel.reactive_color.label"), true),
   })
 
   panel.render(ui.scroll({ flexGrow = 1 }, {

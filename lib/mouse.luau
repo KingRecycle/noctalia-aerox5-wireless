@@ -31,6 +31,20 @@ M.FIXED_DPI = { "", "400", "800", "1200", "1600", "2400", "3200", "6400" }
 M.POLLING = { "125", "250", "500", "1000" }
 M.LIGHTING = { "off", "reactive", "rainbow", "reactive-rainbow" }
 
+-- Preset LED colors for the panel's dropdowns. Sent as hex, so they don't
+-- depend on rivalcfg's list of color names. aliases are names that show as
+-- the same preset when typed or stored.
+M.COLOR_PRESETS = {
+	{ id = "red", hex = "#ff0000", aliases = { "red" } },
+	{ id = "green", hex = "#00ff00", aliases = { "lime" } },
+	{ id = "blue", hex = "#0000ff", aliases = { "blue" } },
+	{ id = "white", hex = "#ffffff", aliases = { "white" } },
+	{ id = "yellow", hex = "#ffff00", aliases = { "yellow" } },
+	{ id = "cyan", hex = "#00ffff", aliases = { "cyan", "aqua" } },
+	{ id = "magenta", hex = "#ff00ff", aliases = { "magenta", "fuchsia" } },
+	{ id = "orange", hex = "#ff8000", aliases = {} },
+}
+
 M.SLEEP_MAX = 20 -- minutes
 M.DIM_MAX = 1200 -- seconds
 
@@ -138,6 +152,28 @@ function M.fromLegacy(t: { [string]: any }): (Settings, { poll_interval: number?
 		extras.rivalcfg_path = t.rivalcfgPath
 	end
 	return s, extras
+end
+
+-- Which dropdown entry a color value matches: "off", a preset index, an
+-- index into themeHexes (the palette colors, lowercase #rrggbb), or "custom".
+-- Presets win over an equal theme color.
+function M.colorChoice(value: string, allowOff: boolean, themeHexes: { string }): (string, number?)
+	local c = M.normalizeColor(value, allowOff)
+	if c == nil then
+		return "custom", nil
+	elseif c == "off" then
+		return "off", nil
+	end
+	for i, p in M.COLOR_PRESETS do
+		if c == p.hex or table.find(p.aliases, c) then
+			return "preset", i
+		end
+	end
+	local i = table.find(themeHexes, c)
+	if i then
+		return "theme", i
+	end
+	return "custom", nil
 end
 
 -- Reads mouse.json as the service wrote it. Each field that doesn't validate

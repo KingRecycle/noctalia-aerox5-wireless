@@ -98,7 +98,25 @@
     "reactive_color": {
       "label": "Reactive color"
     },
-    "color_placeholder": "red or #ff0000",
-    "reactive_placeholder": "off, red or #ff0000"
+    "color": {
+      "off": "Off",
+      "red": "Red",
+      "green": "Green",
+      "blue": "Blue",
+      "white": "White",
+      "yellow": "Yellow",
+      "cyan": "Cyan",
+      "magenta": "Magenta",
+      "orange": "Orange",
+      "theme": "Theme: {role}",
+      "role": {
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "tertiary": "Tertiary",
+        "error": "Error"
+      },
+      "custom": "Custom",
+      "placeholder": "Not set"
+    }
   }
 }

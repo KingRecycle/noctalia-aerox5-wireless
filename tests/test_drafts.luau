@@ -46,6 +46,14 @@ function T.test_other_keys_untouched()
 	A.eq(d:generation("middle_color"), g)
 end
 
+function T.test_remount_bumps_one()
+	local d = drafts.new()
+	local a, b = d:generation("top_color"), d:generation("middle_color")
+	d:remount("top_color")
+	A.eq(d:generation("top_color"), a + 1)
+	A.eq(d:generation("middle_color"), b)
+end
+
 function T.test_reset_bumps_all()
 	local d = drafts.new()
 	d:set("top_color", "red")

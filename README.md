@@ -25,7 +25,9 @@ Click the widget to open the panel. It shows the battery and every mouse setting
 - Power has the sleep timer (0 to 20 min) and the LED dim timer (0 to 1200 s). 0 turns either one off.
 - Lighting has the default lighting mode, the rainbow effect, the top, middle and bottom LED colors, and the reactive color.
 
-A change reaches the mouse as soon as you pick it. Sliders and color fields wait until about one second after your last change, so dragging a slider sends one rivalcfg call, not dozens. Press Enter in a color field to send it at once. Colors take a name like `red` or hex like `#ff0000` or `#f00`.
+A change reaches the mouse as soon as you pick it. Sliders and color fields wait until about one second after your last change, so dragging a slider sends one rivalcfg call, not dozens. Press Enter in a color field to send it at once.
+
+Each color has a dropdown and a text field. The dropdown holds eight preset colors, four colors from your current Noctalia palette (primary, secondary, tertiary and error), and Custom. A palette pick sends the palette's color as it is right now. The mouse keeps that color when the theme changes later, because each re-send would be a rivalcfg call. The text field takes any name rivalcfg knows, like `red`, or hex like `#ff0000` or `#f00`.
 
 The controls turn off while the mouse is asleep or the dongle is unplugged. A sleeping mouse can miss a write that rivalcfg still reports as a success. Move the mouse and the controls come back within 10 seconds.
 

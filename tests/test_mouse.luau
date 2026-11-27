@@ -72,6 +72,40 @@ function T.test_stored_bad_fields_fall_back()
 	A.eq(s.rainbow, false)
 end
 
+function T.test_color_choice_off()
+	A.eq({ mouse.colorChoice("off", true, {}) }, { "off" })
+end
+
+function T.test_color_choice_preset_hex()
+	A.eq({ mouse.colorChoice("#ff0000", false, {}) }, { "preset", 1 })
+end
+
+function T.test_color_choice_preset_name()
+	A.eq({ mouse.colorChoice("red", false, {}) }, { "preset", 1 })
+	A.eq({ mouse.colorChoice("lime", false, {}) }, { "preset", 2 })
+	A.eq({ mouse.colorChoice(" Blue ", false, {}) }, { "preset", 3 })
+end
+
+function T.test_color_choice_theme()
+	A.eq({ mouse.colorChoice("#e0bbdd", false, { "#b0c6ff", "#c0c6dc", "#e0bbdd" }) }, { "theme", 3 })
+end
+
+function T.test_color_choice_preset_before_theme()
+	A.eq({ mouse.colorChoice("#ffffff", false, { "#ffffff" }) }, { "preset", 4 })
+end
+
+function T.test_color_choice_custom()
+	A.eq({ mouse.colorChoice("#123456", false, { "#b0c6ff" }) }, { "custom" })
+	A.eq({ mouse.colorChoice("", false, {}) }, { "custom" })
+	A.eq({ mouse.colorChoice("off", false, {}) }, { "custom" })
+end
+
+function T.test_color_presets_valid()
+	for _, p in mouse.COLOR_PRESETS do
+		A.eq(mouse.normalizeColor(p.hex, false), p.hex, p.id)
+	end
+end
+
 function T.test_fixed_dpi_args()
 	local new, args = mouse.change(mouse.defaults(), "fixed_dpi", "2400")
 	A.eq(args, { "-s", "2400, 2400, 2400, 2400, 2400" })

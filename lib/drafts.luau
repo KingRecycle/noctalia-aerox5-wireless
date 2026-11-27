@@ -9,6 +9,7 @@ export type Drafts = {
 	get: (self: Drafts, key: string) -> any,
 	generation: (self: Drafts, key: string) -> number,
 	applied: (self: Drafts, key: string, value: any, ok: boolean) -> (),
+	remount: (self: Drafts, key: string) -> (),
 	reset: (self: Drafts) -> (),
 }
 
@@ -41,6 +42,11 @@ function M.new(): Drafts
 		elseif values[key] == value then
 			values[key] = nil
 		end
+	end
+
+	-- Makes the input for key show its current value again.
+	function d.remount(_, key: string)
+		gens[key] = (gens[key] or 0) + 1
 	end
 
 	function d.reset(_)
