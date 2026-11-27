@@ -1,6 +1,7 @@
 -- Runs every test module listed below. Usage: luau tests/run.luau
 local modules = {
 	{ "battery", require("./test_battery") },
+	{ "mouse", require("./test_mouse") },
 }
 
 local passed, failed = 0, 0
