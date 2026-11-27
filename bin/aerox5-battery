@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""Read the SteelSeries Aerox 5 Wireless battery level over /dev/hidraw.
+
+Drop-in replacement for `rivalcfg --battery-level` (same output line), built
+because rivalcfg talks to the dongle through libusb, which unbinds and rebinds
+the kernel HID driver on every call. That remove/add cycle makes every game and
+Steam Input re-scan input devices — a ~200 ms freeze on each poll. hidraw talks
+to the interface while the kernel driver stays bound, so nothing re-enumerates.
+
+Protocol (from rivalcfg's aerox5_wireless profile): send output report 0x92
+with the wireless flag (0x40) on USB interface 3; the reply's second byte holds
+bit 7 = charging and (value - 1) * 5 = percent.
+
+Exit codes: 0 ok, 1 mouse unreachable (asleep or switched off), 2 dongle not
+found. The bar widgets key their "asleep" / "no dongle" display off these.
+"""
+import glob
+import os
+import select
+import sys
+
+VENDOR_PRODUCT = "HID_ID=0003:00001038:00001852"
+INTERFACE_SUFFIX = "/input3"
+BATTERY_QUERY = bytes([0x00, 0x92 | 0x40])  # report id 0 + command | wireless flag
+CHARGING_FLAG = 0x80
+REPLY_TIMEOUT_S = 0.3
+
+
+def find_hidraw():
+    """Return the /dev/hidraw node for the dongle's vendor interface, or None."""
+    for uevent in glob.glob("/sys/class/hidraw/hidraw*/device/uevent"):
+        fields = dict(line.split("=", 1) for line in open(uevent).read().split("\n") if "=" in line)
+        if fields.get("HID_ID") == VENDOR_PRODUCT.split("=")[1] and fields.get("HID_PHYS", "").endswith(INTERFACE_SUFFIX):
+            return "/dev/" + uevent.split("/")[4]
+    return None
+
+
+def decode(reply):
+    """Turn the raw reply into (is_charging, level_percent).
+
+    >>> decode(bytes([0xd2, 0x14]))
+    (False, 95)
+    >>> decode(bytes([0xd2, 0x80 | 0x09]))
+    (True, 40)
+
+    Returns None when the mouse is unreachable. A real reply echoes the query
+    byte (0xd2); while the mouse is asleep or switched off the dongle answers
+    `40 ff` instead (captured 2026-09-20 — both states look identical). Levels
+    outside 0-100 are dropped too, as rivalcfg does.
+
+    >>> decode(bytes([0x40, 0xff])) is None
+    True
+    >>> decode(bytes([0x40, 0x14])) is None
+    True
+    >>> decode(bytes([0xd2, 0x40])) is None
+    True
+    >>> decode(bytes([0xd2, 0x00])) is None
+    True
+    """
+    raw = reply[1]
+    level = ((raw & ~CHARGING_FLAG) - 1) * 5
+    if reply[0] != BATTERY_QUERY[1] or not 0 <= level <= 100:
+        return None
+    return bool(raw & CHARGING_FLAG), level
+
+
+def render(is_charging, level):
+    """Format exactly like rivalcfg so existing parsers keep working.
+
+    >>> render(False, 95)
+    'Discharging [========= ] 95 %'
+    >>> render(True, 40)
+    'Charging [====      ] 40 %'
+    """
+    return "%s [%-10s] %i %%" % ("Charging" if is_charging else "Discharging", "=" * (level // 10), level)
+
+
+def query(node):
+    """Send the battery query and return the raw reply, or None on timeout."""
+    fd = os.open(node, os.O_RDWR | os.O_NONBLOCK)
+    try:
+        os.write(fd, BATTERY_QUERY)
+        readable, _, _ = select.select([fd], [], [], REPLY_TIMEOUT_S)
+        return os.read(fd, 64) if readable else None
+    finally:
+        os.close(fd)
+
+
+def main():
+    node = find_hidraw()
+    if node is None:
+        print("Aerox 5 Wireless dongle not found", file=sys.stderr)
+        return 2
+    reply = query(node)
+    reading = decode(reply) if reply and len(reply) >= 2 else None
+    if reading is None:
+        print("Unable to get the battery level. Is the mouse turned on?")
+        return 1
+    print(render(*reading))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

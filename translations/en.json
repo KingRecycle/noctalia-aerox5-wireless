@@ -1,0 +1,129 @@
+{
+  "title": "Aerox 5 Wireless",
+  "settings": {
+    "poll_interval": {
+      "label": "Battery check interval",
+      "description": "Seconds between battery checks while the mouse is awake (30 to 300)"
+    },
+    "rivalcfg_path": {
+      "label": "rivalcfg path",
+      "description": "Command or full path for rivalcfg, which applies mouse settings"
+    }
+  },
+  "error": {
+    "invalid": "That value can't be sent to the mouse: {value}",
+    "presets_locked": "Turn fixed DPI off to change the DPI presets",
+    "not_ready": "The mouse isn't reachable, so the change wasn't sent",
+    "rivalcfg_failed": "rivalcfg failed: {message}",
+    "rivalcfg_unknown": "rivalcfg failed with exit code {code}",
+    "rivalcfg_not_started": "Couldn't run rivalcfg ({path}). Check the rivalcfg path setting.",
+    "lighting_off": "Lighting is off. Pick a mode first.",
+    "zones_only": "Zone colors apply in Custom zones mode",
+    "reactive_off": "Turn Reactive on to change its color",
+    "reactive_mode": "Reactive only always flashes. Pick another mode to turn the flash off."
+  },
+  "panel": {
+    "refresh": "Check battery now",
+    "settings": "Plugin settings",
+    "applying": "Applying",
+    "status": {
+      "checking": "Checking the battery",
+      "discharging": "Discharging",
+      "charging": "Charging",
+      "asleep": "Asleep, last seen {level}%",
+      "asleep_unknown": "Asleep",
+      "no_dongle": "Dongle not found",
+      "error": "Couldn't read the battery",
+      "age_seconds": "checked {n} s ago",
+      "age_minutes": "checked {n} min ago"
+    },
+    "disabled": {
+      "asleep": "Mouse asleep. Move it to wake it.",
+      "no_dongle": "Dongle not found.",
+      "error": "The battery reading failed, so the controls are off."
+    },
+    "section": {
+      "performance": "Performance",
+      "power": "Power",
+      "lighting": "Lighting"
+    },
+    "presets": {
+      "label": "DPI presets",
+      "locked": "Presets apply when fixed DPI is off.",
+      "options": {
+        "400, 800, 1200, 2400, 3200": "Default (400/800/1200/2400/3200)",
+        "400, 800, 1600": "Low (400/800/1600)",
+        "800, 1600, 3200": "Medium (800/1600/3200)",
+        "1600, 3200, 6400": "High (1600/3200/6400)",
+        "800, 1200, 1600, 2400, 3200": "Fine (800/1200/1600/2400/3200)"
+      }
+    },
+    "fixed_dpi": {
+      "label": "Fixed DPI",
+      "off": "Off"
+    },
+    "polling_rate": {
+      "label": "Polling rate"
+    },
+    "sleep_timer": {
+      "label": "Sleep after"
+    },
+    "dim_timer": {
+      "label": "Dim after"
+    },
+    "off": "Off",
+    "minutes": "{n} min",
+    "seconds": "{n} s",
+    "top_color": {
+      "label": "Top color"
+    },
+    "middle_color": {
+      "label": "Middle color"
+    },
+    "bottom_color": {
+      "label": "Bottom color"
+    },
+    "reactive_color": {
+      "label": "Reactive color"
+    },
+    "color": {
+      "off": "Off",
+      "red": "Red",
+      "green": "Green",
+      "blue": "Blue",
+      "white": "White",
+      "yellow": "Yellow",
+      "cyan": "Cyan",
+      "magenta": "Magenta",
+      "orange": "Orange",
+      "theme": "Theme: {role}",
+      "role": {
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "tertiary": "Tertiary",
+        "error": "Error"
+      },
+      "custom": "Custom",
+      "placeholder": "Not set"
+    },
+    "lighting": {
+      "label": "Mode",
+      "options": {
+        "off": "Off",
+        "reactive": "Reactive only",
+        "zones": "Custom zones",
+        "rainbow": "Rainbow cycle"
+      }
+    },
+    "lighting_note": {
+      "off": "Lighting is off. Pick a mode to change the colors.",
+      "rainbow": "Zone colors apply in Custom zones mode.",
+      "reactive": "LEDs stay dark and flash on each click."
+    },
+    "reactive": {
+      "label": "Reactive",
+      "hint": "Flash on click"
+    },
+    "on": "On"
+  }
+}
