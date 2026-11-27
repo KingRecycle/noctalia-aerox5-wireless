@@ -25,7 +25,7 @@ Click the widget to open the panel. It shows the battery and every mouse setting
 - Power has the sleep timer (0 to 20 min) and the LED dim timer (0 to 1200 s). 0 turns either one off.
 - Lighting has the mode (Off, Reactive only, Custom zones or Rainbow cycle), the top, middle and bottom LED colors, and Reactive, which flashes a color of your choice on each click.
 
-A change reaches the mouse as soon as you pick it. Sliders and color fields wait until about one second after your last change, so dragging a slider sends one rivalcfg call, not dozens. Press Enter in a color field to send it at once.
+A change reaches the mouse as soon as you pick it. Sliders wait until about one second after your last change, so dragging a slider sends one rivalcfg call, not dozens. A typed color applies when you press Enter.
 
 The lighting mode takes effect right away and sticks after a restart. Off turns the LEDs dark with no click flash. Reactive only keeps them dark and flashes your reactive color on each click. Custom zones shows your three zone colors. Rainbow cycle cycles colors on its own. Reactive is a separate on/off for the click flash, used by Custom zones and Rainbow cycle. Controls the current mode doesn't use gray out, and the plugin keeps their values for when you switch back.
 
@@ -127,7 +127,7 @@ Roughly how much of the code AI wrote: **all**
 - [ ] Found bugs or issues for me to look into
 - [x] Fixed bugs
 - [x] Refactored existing code
-- [ ] Reviewed code before merge
+- [x] Reviewed code before merge
 - [ ] Autocomplete only
 
 **Design and planning**
@@ -149,8 +149,8 @@ Roughly how much of the code AI wrote: **all**
 - [ ] The app sends your data to an AI model while it runs
 
 **My part**
-- [ ] I made the product and design decisions
-- [ ] I tested the app myself
+- [x] I made the product and design decisions
+- [x] I tested the app myself
 - [ ] I reviewed every AI change before it merged
 
 ## License

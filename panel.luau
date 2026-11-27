@@ -1,9 +1,9 @@
 --!nonstrict
 -- Aerox 5 Wireless panel. Battery readout, then every mouse control.
 -- Controls send aerox5.cmd to the service, which applies them with rivalcfg.
--- Selects apply at once. Sliders and color fields apply about 1 s after the
--- last change (colors also on Enter). Controls are off unless the mouse
--- answered the last battery check.
+-- Selects apply at once, sliders about 1 s after the last change, typed
+-- colors on Enter. Controls are off unless the mouse answered the last
+-- battery check.
 
 local battery = require("./lib/battery.luau")
 local mouse = require("./lib/mouse.luau")
@@ -250,9 +250,11 @@ local function colorField(key, label, allowOff, lockedOff)
       controlSize = "sm",
       width = 96,
       enabled = ready() and not lockedOff,
+      -- Typed colors apply on Enter only, so a half-typed value like #ff0
+      -- never reaches the mouse.
       onChange = function(v)
         customPicked[key] = nil
-        sendColor(v, SLIDER_DELAY_MS)
+        drafts:set(key, v)
       end,
       onSubmit = function()
         local v = drafts:get(key)
