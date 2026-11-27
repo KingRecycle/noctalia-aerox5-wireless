@@ -175,6 +175,9 @@ local function applyNext()
     if result.exitCode == 0 and not result.timedOut then
       settings = new
       saveSettings()
+    elseif result.exitCode == 127 and noctalia.string.trim(result.stderr or "") == "" then
+      -- The shell's "command not found": the rivalcfg path is wrong.
+      noctalia.notifyError(title(), noctalia.tr("error.rivalcfg_not_started", { path = path }))
     else
       noctalia.notifyError(title(), failMessage(result))
     end

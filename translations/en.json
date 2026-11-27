@@ -17,5 +17,88 @@
     "rivalcfg_failed": "rivalcfg failed: {message}",
     "rivalcfg_unknown": "rivalcfg failed with exit code {code}",
     "rivalcfg_not_started": "Couldn't run rivalcfg ({path}). Check the rivalcfg path setting."
+  },
+  "panel": {
+    "refresh": "Check battery now",
+    "settings": "Plugin settings",
+    "applying": "Applying",
+    "status": {
+      "checking": "Checking the battery",
+      "discharging": "Discharging",
+      "charging": "Charging",
+      "asleep": "Asleep, last seen {level}%",
+      "asleep_unknown": "Asleep",
+      "no_dongle": "Dongle not found",
+      "error": "Couldn't read the battery",
+      "age_seconds": "checked {n} s ago",
+      "age_minutes": "checked {n} min ago"
+    },
+    "disabled": {
+      "asleep": "Mouse asleep. Move it to wake it.",
+      "no_dongle": "Dongle not found.",
+      "error": "The battery reading failed, so the controls are off."
+    },
+    "section": {
+      "performance": "Performance",
+      "power": "Power",
+      "lighting": "Lighting"
+    },
+    "presets": {
+      "label": "DPI presets",
+      "locked": "Presets apply when fixed DPI is off.",
+      "options": {
+        "400, 800, 1200, 2400, 3200": "Default (400/800/1200/2400/3200)",
+        "400, 800, 1600": "Low (400/800/1600)",
+        "800, 1600, 3200": "Medium (800/1600/3200)",
+        "1600, 3200, 6400": "High (1600/3200/6400)",
+        "800, 1200, 1600, 2400, 3200": "Fine (800/1200/1600/2400/3200)"
+      }
+    },
+    "fixed_dpi": {
+      "label": "Fixed DPI",
+      "off": "Off"
+    },
+    "polling_rate": {
+      "label": "Polling rate"
+    },
+    "sleep_timer": {
+      "label": "Sleep after"
+    },
+    "dim_timer": {
+      "label": "Dim after"
+    },
+    "off": "Off",
+    "minutes": "{n} min",
+    "seconds": "{n} s",
+    "default_lighting": {
+      "label": "Default lighting",
+      "options": {
+        "off": "Off",
+        "reactive": "Reactive",
+        "rainbow": "Rainbow",
+        "reactive-rainbow": "Reactive rainbow"
+      }
+    },
+    "rainbow": {
+      "label": "Rainbow effect",
+      "options": {
+        "off": "Off",
+        "on": "On"
+      }
+    },
+    "top_color": {
+      "label": "Top color"
+    },
+    "middle_color": {
+      "label": "Middle color"
+    },
+    "bottom_color": {
+      "label": "Bottom color"
+    },
+    "reactive_color": {
+      "label": "Reactive color"
+    },
+    "color_placeholder": "red or #ff0000",
+    "reactive_placeholder": "off, red or #ff0000"
   }
 }

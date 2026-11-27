@@ -1,2 +1,325 @@
 --!nonstrict
-panel.render(ui.label({ text = noctalia.tr("title") }))
+-- Aerox 5 Wireless panel. Battery readout, then every mouse control.
+-- Controls send aerox5.cmd to the service, which applies them with rivalcfg.
+-- Selects apply at once. Sliders and color fields apply about 1 s after the
+-- last change (colors also on Enter). Controls are off unless the mouse
+-- answered the last battery check.
+
+local battery = require("./lib/battery.luau")
+local mouse = require("./lib/mouse.luau")
+
+local PANEL_ID = "kingrecycle/aerox5-wireless:panel"
+local SLIDER_DELAY_MS = 1000
+local LABEL_WIDTH = 120
+
+local closeButton = true
+local reading = noctalia.state.get("aerox5.battery")
+local settings = noctalia.state.get("aerox5.settings") or mouse.defaults()
+local busy = noctalia.state.get("aerox5.busy") == true
+-- Values shown while a slider or color field waits to be applied.
+local drafts = {}
+-- Bumped when the service publishes settings, so color fields show the
+-- stored value again (a rejected color reverts).
+local inputGeneration = 0
+
+local BAND_FILL = {
+  high = "primary",
+  mid = "tertiary",
+  low = "error",
+  charging = "primary",
+  asleep = "on_surface_variant",
+  unknown = "on_surface_variant",
+}
+
+local function tr(key, subst)
+  return noctalia.tr(key, subst)
+end
+
+local function send(key, value, delayMs)
+  noctalia.state.set("aerox5.cmd", { op = "set", key = key, value = value, delay_ms = delayMs })
+end
+
+local function ready()
+  return reading ~= nil and reading.state == "ok"
+end
+
+local function current(key)
+  local d = drafts[key]
+  if d ~= nil then
+    return d
+  end
+  return settings[key]
+end
+
+local function ageText()
+  if reading == nil or reading.checked_at == nil then
+    return nil
+  end
+  local s = math.max(0, math.floor((noctalia.nowMs() - reading.checked_at) / 1000))
+  if s < 60 then
+    return tr("panel.status.age_seconds", { n = tostring(s) })
+  end
+  return tr("panel.status.age_minutes", { n = tostring(math.floor(s / 60)) })
+end
+
+local function statusText()
+  if reading == nil then
+    return tr("panel.status.checking")
+  end
+  local text
+  if reading.state == "ok" then
+    text = reading.charging and tr("panel.status.charging") or tr("panel.status.discharging")
+  elseif reading.state == "asleep" then
+    text = reading.level and tr("panel.status.asleep", { level = tostring(reading.level) })
+      or tr("panel.status.asleep_unknown")
+  elseif reading.state == "no_dongle" then
+    text = tr("panel.status.no_dongle")
+  else
+    text = tr("panel.status.error")
+  end
+  local age = ageText()
+  return age and `{text} · {age}` or text
+end
+
+local function disabledText()
+  if reading == nil or reading.state == "ok" then
+    return nil
+  end
+  return tr("panel.disabled." .. reading.state)
+end
+
+-- A nil in the middle of an array literal would cut the siblings after it.
+local function compact(list)
+  local out = {}
+  for i = 1, table.maxn(list) do
+    if list[i] then
+      table.insert(out, list[i])
+    end
+  end
+  return out
+end
+
+local function field(label, control)
+  return ui.row({ gap = 8, align = "center" }, {
+    -- Labels ignore width, so a fixed-width row keeps the controls aligned.
+    ui.row({ width = LABEL_WIDTH, align = "center" }, {
+      ui.label({ text = label, color = "on_surface_variant" }),
+    }),
+    control,
+  })
+end
+
+local function sectionTitle(text)
+  return ui.label({ text = text, fontWeight = "bold", fontSize = 13, color = "primary" })
+end
+
+local function selectField(key, label, options, values, extra)
+  local index = table.find(values, current(key)) or 1
+  local props = {
+    key = key,
+    options = options,
+    selectedIndex = index - 1,
+    controlSize = "sm",
+    flexGrow = 1,
+    enabled = ready(),
+    onChange = function(value)
+      local picked = values[(tonumber(value) or 0) + 1]
+      if picked ~= nil and picked ~= current(key) then
+        send(key, picked, 0)
+      end
+    end,
+  }
+  for k, v in extra or {} do
+    props[k] = v
+  end
+  return field(label, ui.select(props))
+end
+
+local function sliderField(key, label, max, step, format)
+  local value = current(key)
+  local valueText = value == 0 and tr("panel.off") or format(value)
+  return field(label, ui.row({ gap = 8, align = "center", flexGrow = 1 }, {
+    ui.slider({
+      min = 0,
+      max = max,
+      step = step,
+      value = value,
+      controlSize = "sm",
+      flexGrow = 1,
+      enabled = ready(),
+      onChange = function(v)
+        local n = math.floor((tonumber(v) or 0) + 0.5)
+        if n ~= current(key) then
+          drafts[key] = n
+          send(key, n, SLIDER_DELAY_MS)
+          render()
+        end
+      end,
+    }),
+    ui.row({ width = 56, justify = "end" }, { ui.label({ text = valueText }) }),
+  }))
+end
+
+local function colorField(key, label, placeholder)
+  return field(label, ui.input({
+    key = `{key}-{inputGeneration}`,
+    value = settings[key] or "",
+    placeholder = placeholder,
+    controlSize = "sm",
+    flexGrow = 1,
+    enabled = ready(),
+    onChange = function(value)
+      drafts[key] = value
+      send(key, value, SLIDER_DELAY_MS)
+    end,
+    onSubmit = function()
+      local value = drafts[key]
+      if value ~= nil then
+        send(key, value, 0)
+      end
+    end,
+  }))
+end
+
+local function header()
+  return ui.row({ gap = 8, align = "center" }, compact({
+    ui.glyph({ name = "mouse", size = 20, color = "primary" }),
+    ui.label({ text = tr("title"), fontSize = 16, fontWeight = "bold", flexGrow = 1 }),
+    busy and ui.label({ text = tr("panel.applying"), fontSize = 11, color = "on_surface_variant" }) or false,
+    ui.button({
+      glyph = "refresh",
+      variant = "ghost",
+      controlSize = "sm",
+      tooltip = tr("panel.refresh"),
+      onClick = function()
+        noctalia.state.set("aerox5.cmd", { op = "refresh" })
+      end,
+    }),
+    ui.button({
+      glyph = "settings",
+      variant = "ghost",
+      controlSize = "sm",
+      tooltip = tr("panel.settings"),
+      onClick = function()
+        noctalia.openSettings()
+      end,
+    }),
+    closeButton and ui.button({
+      glyph = "close",
+      variant = "ghost",
+      controlSize = "sm",
+      onClick = function()
+        panel.close()
+      end,
+    }) or false,
+  }))
+end
+
+local function batteryBlock()
+  local b = reading or { state = "error", charging = false }
+  local band = battery.band(b)
+  local level = b.level
+  return ui.column({ gap = 6, padding = 10, radius = 10, fill = "surface_container/0.5" }, {
+    ui.label({
+      text = level and `{level}%` or "?",
+      fontSize = 24,
+      fontWeight = "bold",
+      color = BAND_FILL[band],
+    }),
+    ui.progress({
+      progress = level and math.clamp(level / 100, 0, 1) or 0,
+      fill = BAND_FILL[band],
+      track = "on_surface/0.12",
+      height = 6,
+      radius = 3,
+    }),
+    ui.label({ text = statusText(), fontSize = 11, color = "on_surface_variant" }),
+  })
+end
+
+local function labelsFor(values, format)
+  local out = {}
+  for _, v in values do
+    table.insert(out, format(v))
+  end
+  return out
+end
+
+function render()
+  local locked = settings.fixed_dpi ~= ""
+  local notice = disabledText()
+
+  local rows = compact({
+    header(),
+    batteryBlock(),
+    notice and ui.label({ text = notice, fontSize = 12, color = "error" }) or false,
+
+    sectionTitle(tr("panel.section.performance")),
+    selectField("presets", tr("panel.presets.label"), labelsFor(mouse.PRESETS, function(v)
+      return tr("panel.presets.options." .. v)
+    end), mouse.PRESETS,
+      { enabled = ready() and not locked }),
+    locked and ui.label({ text = tr("panel.presets.locked"), fontSize = 11, color = "on_surface_variant" }) or false,
+    selectField("fixed_dpi", tr("panel.fixed_dpi.label"), labelsFor(mouse.FIXED_DPI, function(v)
+      return v == "" and tr("panel.fixed_dpi.off") or `{v} DPI`
+    end), mouse.FIXED_DPI),
+    selectField("polling_rate", tr("panel.polling_rate.label"), labelsFor(mouse.POLLING, function(v)
+      return `{v} Hz`
+    end), mouse.POLLING),
+
+    sectionTitle(tr("panel.section.power")),
+    sliderField("sleep_timer", tr("panel.sleep_timer.label"), mouse.SLEEP_MAX, 1, function(v)
+      return tr("panel.minutes", { n = tostring(v) })
+    end),
+    sliderField("dim_timer", tr("panel.dim_timer.label"), mouse.DIM_MAX, 10, function(v)
+      return tr("panel.seconds", { n = tostring(v) })
+    end),
+
+    sectionTitle(tr("panel.section.lighting")),
+    selectField("default_lighting", tr("panel.default_lighting.label"), labelsFor(mouse.LIGHTING, function(v)
+      return tr("panel.default_lighting.options." .. v)
+    end), mouse.LIGHTING),
+    selectField("rainbow", tr("panel.rainbow.label"), { tr("panel.rainbow.options.off"), tr("panel.rainbow.options.on") }, { false, true }),
+    colorField("top_color", tr("panel.top_color.label"), tr("panel.color_placeholder")),
+    colorField("middle_color", tr("panel.middle_color.label"), tr("panel.color_placeholder")),
+    colorField("bottom_color", tr("panel.bottom_color.label"), tr("panel.color_placeholder")),
+    colorField("reactive_color", tr("panel.reactive_color.label"), tr("panel.reactive_placeholder")),
+  })
+
+  panel.render(ui.scroll({ flexGrow = 1 }, {
+    ui.column({ gap = 10, padding = 12 }, rows),
+  }))
+end
+
+function update()
+  render()
+end
+
+function onOpen(_context)
+  closeButton = noctalia.getSetting("shell.show_close_buttons") ~= false
+  drafts = {}
+  inputGeneration += 1
+  panel.setWantsSecondTicks(true)
+  render()
+end
+
+noctalia.state.watch("aerox5.battery", function(value)
+  reading = value
+  render()
+end)
+
+noctalia.state.watch("aerox5.settings", function(value)
+  if type(value) == "table" then
+    settings = value
+  end
+  drafts = {}
+  inputGeneration += 1
+  render()
+end)
+
+noctalia.state.watch("aerox5.busy", function(value)
+  busy = value == true
+  render()
+end)
+
+render()
