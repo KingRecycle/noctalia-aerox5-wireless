@@ -3,6 +3,34 @@ local drafts = require("../lib/drafts")
 
 local T = {}
 
+function T.test_typed_text_is_not_a_draft_until_submitted()
+	local d = drafts.new()
+	d:type("top_color", "#0000ff")
+	A.eq(d:get("top_color"), nil)
+	A.eq(d:submit("top_color"), "#0000ff")
+	-- Submitting takes the text, so a second Enter sends nothing.
+	A.eq(d:submit("top_color"), nil)
+	d:type("top_color", "blue")
+	d:reset()
+	A.eq(d:submit("top_color"), nil)
+end
+
+function T.test_settings_change_remounts_fields_without_draft()
+	local d = drafts.new()
+	local keys = { "top_color", "middle_color", "reactive_color" }
+	local gTop, gMid, gRe = d:generation("top_color"), d:generation("middle_color"), d:generation("reactive_color")
+	d:set("middle_color", "green")
+	d:settingsChanged({ top_color = "", middle_color = "", reactive_color = "red" }, { top_color = "red", middle_color = "lime", reactive_color = "red" }, keys)
+	-- top changed with no draft: the field must show the new value.
+	A.truthy(d:generation("top_color") ~= gTop)
+	-- middle has a draft in flight: leave the field alone.
+	A.eq(d:generation("middle_color"), gMid)
+	-- reactive didn't change.
+	A.eq(d:generation("reactive_color"), gRe)
+	-- No previous settings (first publish): nothing to compare.
+	d:settingsChanged(nil, { top_color = "blue" }, keys)
+end
+
 function T.test_set_get()
 	local d = drafts.new()
 	d:set("sleep_timer", 14)

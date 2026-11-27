@@ -162,6 +162,16 @@ local function lightingArgs(s: Settings, new: Settings): { string }
 	return args
 end
 
+-- rivalcfg says setting a color turns the rainbow off and doesn't say which
+-- colors count. In rainbow mode, re-send -e with any reactive change. rivalcfg
+-- applies -e after -a whatever the argument order.
+local function keepRainbow(s: Settings, args: { string }): { string }
+	if s.lighting == "rainbow" then
+		table.insert(args, "-e")
+	end
+	return args
+end
+
 -- Why a setting can't change in the current lighting, or nil if it can.
 local function lightingLock(s: Settings, key: string): string?
 	local isZone = ZONE_FLAGS[key] ~= nil
@@ -184,20 +194,37 @@ end
 -- Maps the old fields (rivalcfg's startup lighting, the rainbow effect flag
 -- and a reactive color that could be "off") to a mode and the reactive
 -- on/off. The rainbow flag held what the LEDs showed, so it wins.
-local function fromOldLighting(defaultLighting: any, rainbow: any, reactiveColor: any): (string?, boolean, string)
+-- zonesSet: a zone color was ever applied. Without one, the mouse still runs
+-- rivalcfg's factory rainbow unless startup lighting was off or reactive.
+-- legacy: the QML plugin sent "-d off" with the reactive color, which flashes
+-- on clicks. The interim Luau build sent "-a off" with off.
+local function fromOldLighting(
+	defaultLighting: any,
+	rainbow: any,
+	reactiveColor: any,
+	zonesSet: boolean,
+	legacy: boolean
+): (string?, boolean, string)
+	local c = M.normalizeColor(reactiveColor, true)
+	local hasFlash = c ~= nil and c ~= "off"
 	local lighting: string? = nil
 	if defaultLighting == "off" then
-		lighting = "off"
+		lighting = if legacy and hasFlash then "reactive" else "off"
 	elseif rainbow == true then
+		lighting = "rainbow"
+	elseif not zonesSet and (defaultLighting == "rainbow" or defaultLighting == "reactive-rainbow") then
 		lighting = "rainbow"
 	elseif defaultLighting ~= nil or rainbow ~= nil then
 		lighting = "zones"
 	end
-	local c = M.normalizeColor(reactiveColor, true)
-	if c == nil or c == "off" then
+	if not hasFlash then
 		return lighting, false, ""
 	end
-	return lighting, true, c
+	return lighting, true, c :: string
+end
+
+local function anyZoneSet(s: Settings): boolean
+	return s.top_color ~= "" or s.middle_color ~= "" or s.bottom_color ~= ""
 end
 
 -- Reads the QML plugin's settings.json table. Values that don't validate fall
@@ -226,7 +253,7 @@ function M.fromLegacy(t: { [string]: any }): (Settings, { poll_interval: number?
 			(s :: any)[zone] = c
 		end
 	end
-	local lighting, reactive, reactiveColor = fromOldLighting(t.defaultLighting, t.rainbowEffect, t.reactiveColor)
+	local lighting, reactive, reactiveColor = fromOldLighting(t.defaultLighting, t.rainbowEffect, t.reactiveColor, anyZoneSet(s), true)
 	s.lighting, s.reactive, s.reactive_color = lighting or s.lighting, reactive, reactiveColor
 
 	local extras: { poll_interval: number?, rivalcfg_path: string? } = {}
@@ -291,7 +318,7 @@ function M.fromStored(t: { [string]: any }): Settings
 		s.reactive = t.reactive == true
 		s.reactive_color = M.normalizeColor(t.reactive_color, false) or ""
 	else
-		local lighting, reactive, reactiveColor = fromOldLighting(t.default_lighting, t.rainbow, t.reactive_color)
+		local lighting, reactive, reactiveColor = fromOldLighting(t.default_lighting, t.rainbow, t.reactive_color, anyZoneSet(s), false)
 		s.lighting, s.reactive, s.reactive_color = lighting or s.lighting, reactive, reactiveColor
 	end
 	return s
@@ -352,7 +379,7 @@ function M.change(s: Settings, key: string, value: any): (Settings?, { string } 
 			return nil, "invalid"
 		end
 		new.reactive_color = c
-		return new, { "-a", c }
+		return new, keepRainbow(new, { "-a", c })
 	elseif key == "lighting" then
 		if not oneOf(M.LIGHTING, value) then
 			return nil, "invalid"
@@ -370,7 +397,7 @@ function M.change(s: Settings, key: string, value: any): (Settings?, { string } 
 		if value and new.reactive_color == "" then
 			new.reactive_color = REACTIVE_DEFAULT
 		end
-		return new, { "-d", startup(new), "-a", flash(new) }
+		return new, keepRainbow(new, { "-d", startup(new), "-a", flash(new) })
 	end
 	return nil, "invalid"
 end

@@ -188,6 +188,24 @@ function T.test_stored_old_lighting_fields()
 	A.eq(mouse.fromStored({ reactive_color = "off" }).reactive, false)
 end
 
+function T.test_stored_untouched_defaults_are_rainbow()
+	-- rivalcfg's factory state: startup rainbow, no colors ever set.
+	A.eq(mouse.fromStored({ default_lighting = "rainbow", rainbow = false }).lighting, "rainbow")
+	A.eq(mouse.fromStored({ default_lighting = "reactive-rainbow", rainbow = false }).lighting, "rainbow")
+	A.eq(mouse.fromLegacy({ defaultLighting = "rainbow", rainbowEffect = false }).lighting, "rainbow")
+	-- A zone color set means the zones were showing.
+	A.eq(mouse.fromStored({ default_lighting = "rainbow", rainbow = false, top_color = "red" }).lighting, "zones")
+end
+
+function T.test_legacy_off_with_reactive_is_reactive_only()
+	-- The QML plugin sent "-a <color> -d off", which flashes on clicks.
+	local s = mouse.fromLegacy({ defaultLighting = "off", reactiveColor = "red" })
+	A.eq(s.lighting, "reactive")
+	A.eq(s.reactive_color, "red")
+	-- The interim plugin sent "-a off" with off, so stored off stays off.
+	A.eq(mouse.fromStored({ default_lighting = "off", reactive_color = "red" }).lighting, "off")
+end
+
 local function lit(overrides: { [string]: any }?)
 	local s = with({ top_color = "red", middle_color = "lime", bottom_color = "blue", reactive_color = "#b0c6ff", lighting = "zones", reactive = true })
 	for k, v in overrides or {} do
@@ -269,8 +287,14 @@ function T.test_reactive_toggle()
 	local new, args = mouse.change(lit(), "reactive", false)
 	A.eq(args, { "-d", "reactive", "-a", "off" })
 	A.eq(new and new.reactive, false)
-	A.eq(select(2, mouse.change(lit({ reactive = false, lighting = "rainbow" }), "reactive", true)), { "-d", "reactive-rainbow", "-a", "#b0c6ff" })
+	A.eq(select(2, mouse.change(lit({ reactive = false, lighting = "rainbow" }), "reactive", true)), { "-d", "reactive-rainbow", "-a", "#b0c6ff", "-e" })
 	A.eq(select(2, mouse.change(lit(), "reactive", "yes")), "invalid")
+end
+
+function T.test_reactive_in_rainbow_keeps_rainbow()
+	local s = lit({ lighting = "rainbow" })
+	A.eq(select(2, mouse.change(s, "reactive", false)), { "-d", "rainbow", "-a", "off", "-e" })
+	A.eq(select(2, mouse.change(s, "reactive_color", "red")), { "-a", "red", "-e" })
 end
 
 function T.test_reactive_on_without_color_uses_white()

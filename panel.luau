@@ -165,6 +165,7 @@ end
 local THEME_ROLES = { "primary", "secondary", "tertiary", "error" }
 -- Set when Custom is picked, so the dropdown shows it until a value is typed.
 local customPicked = {}
+local COLOR_KEYS = { "top_color", "middle_color", "bottom_color", "reactive_color" }
 
 local function themeHexes()
   local out = {}
@@ -254,12 +255,13 @@ local function colorField(key, label, allowOff, lockedOff)
       -- never reaches the mouse.
       onChange = function(v)
         customPicked[key] = nil
-        drafts:set(key, v)
+        drafts:type(key, v)
       end,
       onSubmit = function()
-        local v = drafts:get(key)
+        local v = drafts:submit(key)
         if v ~= nil then
           sendColor(v, 0)
+          render()
         end
       end,
     }),
@@ -429,6 +431,9 @@ end)
 
 noctalia.state.watch("aerox5.settings", function(value)
   if type(value) == "table" then
+    -- The service can fill in colors (zone defaults, the reactive white), and
+    -- the text fields only show a new value when they remount.
+    drafts:settingsChanged(settings, value, COLOR_KEYS)
     settings = value
   end
   render()
