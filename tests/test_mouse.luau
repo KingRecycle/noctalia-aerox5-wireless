@@ -57,6 +57,21 @@ function T.test_legacy_empty()
 	A.eq(extras, {})
 end
 
+function T.test_stored_round_trip()
+	local s = with({ fixed_dpi = "2400", presets = "800, 1600, 3200", top_color = "#00ff00", rainbow = true, sleep_timer = 15 })
+	A.eq(mouse.fromStored(s), s)
+end
+
+function T.test_stored_bad_fields_fall_back()
+	local d = mouse.defaults()
+	local s = mouse.fromStored({ presets = "1, 2", fixed_dpi = "2400", sleep_timer = "15", top_color = "blue!", rainbow = "yes" })
+	A.eq(s.fixed_dpi, "2400")
+	A.eq(s.presets, d.presets)
+	A.eq(s.sleep_timer, d.sleep_timer)
+	A.eq(s.top_color, "")
+	A.eq(s.rainbow, false)
+end
+
 function T.test_fixed_dpi_args()
 	local new, args = mouse.change(mouse.defaults(), "fixed_dpi", "2400")
 	A.eq(args, { "-s", "2400, 2400, 2400, 2400, 2400" })

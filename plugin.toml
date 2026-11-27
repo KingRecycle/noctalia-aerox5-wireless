@@ -1,0 +1,50 @@
+# Aerox 5 Wireless: battery level in the bar, mouse settings in a panel.
+# The service polls bin/aerox5-battery (hidraw, never rivalcfg) and runs
+# rivalcfg only when a panel control changes. The bar widget and the panel
+# read the service's state through noctalia.state.
+
+id = "kingrecycle/aerox5-wireless"
+name = "Aerox 5 Wireless"
+version = "2.0.0"
+plugin_api = 43
+author = "KingRecycle"
+license = "MIT"
+dependencies = ["python3", "rivalcfg"]
+tags = ["bar", "panel", "service", "hardware", "mouse", "battery"]
+icon = "mouse"
+description = "Battery level and hardware settings for the SteelSeries Aerox 5 Wireless mouse."
+
+# Plugin-level settings: the service reads them, so they can't live on an entry.
+[[setting]]
+key = "poll_interval"
+type = "int"
+label_key = "settings.poll_interval.label"
+description_key = "settings.poll_interval.description"
+default = 120
+min = 30
+max = 300
+
+[[setting]]
+key = "rivalcfg_path"
+type = "string"
+label_key = "settings.rivalcfg_path.label"
+description_key = "settings.rivalcfg_path.description"
+default = "rivalcfg"
+
+[[service]]
+id = "service"
+entry = "service.luau"
+
+[[widget]]
+id = "bar"
+entry = "bar.luau"
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 380
+height = "content"
+max_height = 640
+placement = "attached"
+position = "auto"
+open_near_click = true

@@ -1,0 +1,21 @@
+{
+  "title": "Aerox 5 Wireless",
+  "settings": {
+    "poll_interval": {
+      "label": "Battery check interval",
+      "description": "Seconds between battery checks while the mouse is awake (30 to 300)"
+    },
+    "rivalcfg_path": {
+      "label": "rivalcfg path",
+      "description": "Command or full path for rivalcfg, which applies mouse settings"
+    }
+  },
+  "error": {
+    "invalid": "That value can't be sent to the mouse: {value}",
+    "presets_locked": "Turn fixed DPI off to change the DPI presets",
+    "not_ready": "The mouse isn't reachable, so the change wasn't sent",
+    "rivalcfg_failed": "rivalcfg failed: {message}",
+    "rivalcfg_unknown": "rivalcfg failed with exit code {code}",
+    "rivalcfg_not_started": "Couldn't run rivalcfg ({path}). Check the rivalcfg path setting."
+  }
+}

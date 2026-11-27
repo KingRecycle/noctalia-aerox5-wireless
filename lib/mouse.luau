@@ -140,6 +140,44 @@ function M.fromLegacy(t: { [string]: any }): (Settings, { poll_interval: number?
 	return s, extras
 end
 
+-- Reads mouse.json as the service wrote it. Each field that doesn't validate
+-- falls back to its default, so one bad value doesn't lose the rest.
+function M.fromStored(t: { [string]: any }): Settings
+	local s = M.defaults()
+	if oneOf(M.PRESETS, t.presets) then
+		s.presets = t.presets
+	end
+	if oneOf(M.FIXED_DPI, t.fixed_dpi) then
+		s.fixed_dpi = t.fixed_dpi
+	end
+	if oneOf(M.POLLING, t.polling_rate) then
+		s.polling_rate = t.polling_rate
+	end
+	if intIn(t.sleep_timer, 0, M.SLEEP_MAX) then
+		s.sleep_timer = t.sleep_timer
+	end
+	if intIn(t.dim_timer, 0, M.DIM_MAX) then
+		s.dim_timer = t.dim_timer
+	end
+	for _, zone in ZONES do
+		local c = M.normalizeColor(t[zone], false)
+		if c then
+			(s :: any)[zone] = c
+		end
+	end
+	local reactive = M.normalizeColor(t.reactive_color, true)
+	if reactive then
+		s.reactive_color = reactive
+	end
+	if oneOf(M.LIGHTING, t.default_lighting) then
+		s.default_lighting = t.default_lighting
+	end
+	if type(t.rainbow) == "boolean" then
+		s.rainbow = t.rainbow
+	end
+	return s
+end
+
 -- Applies one change. On success returns the new settings (s is not changed)
 -- and the rivalcfg arguments, without the binary. On failure returns nil and
 -- "invalid" or "presets_locked".
