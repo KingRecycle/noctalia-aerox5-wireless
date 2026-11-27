@@ -35,8 +35,8 @@ M.SLEEP_MAX = 20 -- minutes
 M.DIM_MAX = 1200 -- seconds
 
 -- rivalcfg's zone colors, sent when rainbow turns off and a zone was never set.
-local ZONE_DEFAULTS = { top_color = "red", middle_color = "lime", bottom_color = "blue" }
-local ZONE_FLAGS = { top_color = "--top-color", middle_color = "--middle-color", bottom_color = "--bottom-color" }
+local ZONE_DEFAULTS: { [string]: string } = { top_color = "red", middle_color = "lime", bottom_color = "blue" }
+local ZONE_FLAGS: { [string]: string } = { top_color = "--top-color", middle_color = "--middle-color", bottom_color = "--bottom-color" }
 local ZONES = { "top_color", "middle_color", "bottom_color" }
 
 function M.defaults(): Settings
