@@ -176,7 +176,7 @@ end
 
 -- A dropdown of presets, palette colors and Custom, next to a text field for
 -- any name or hex. Both send the same setting.
-local function colorField(key, label, allowOff)
+local function colorField(key, label, allowOff, lockedOff)
   local value = current(key) or ""
   local hexes = themeHexes()
 
@@ -226,7 +226,7 @@ local function colorField(key, label, allowOff)
       selectedIndex = selected - 1,
       controlSize = "sm",
       flexGrow = 1,
-      enabled = ready(),
+      enabled = ready() and not lockedOff,
       onChange = function(index)
         local i = (tonumber(index) or 0) + 1
         if i == customIndex then
@@ -249,7 +249,7 @@ local function colorField(key, label, allowOff)
       placeholder = tr("panel.color.placeholder"),
       controlSize = "sm",
       width = 96,
-      enabled = ready(),
+      enabled = ready() and not lockedOff,
       onChange = function(v)
         customPicked[key] = nil
         sendColor(v, SLIDER_DELAY_MS)
@@ -330,6 +330,8 @@ end
 
 function render()
   local locked = settings.fixed_dpi ~= ""
+  -- While lighting is off the saved colors aren't on the mouse, so they wait.
+  local lightingOff = current("default_lighting") == "off"
   local notice = disabledText()
 
   local rows = compact({
@@ -362,11 +364,13 @@ function render()
     selectField("default_lighting", tr("panel.default_lighting.label"), labelsFor(mouse.LIGHTING, function(v)
       return tr("panel.default_lighting.options." .. v)
     end), mouse.LIGHTING),
-    selectField("rainbow", tr("panel.rainbow.label"), { tr("panel.rainbow.options.off"), tr("panel.rainbow.options.on") }, { false, true }),
-    colorField("top_color", tr("panel.top_color.label"), false),
-    colorField("middle_color", tr("panel.middle_color.label"), false),
-    colorField("bottom_color", tr("panel.bottom_color.label"), false),
-    colorField("reactive_color", tr("panel.reactive_color.label"), true),
+    lightingOff and ui.label({ text = tr("panel.lighting_off"), fontSize = 11, color = "on_surface_variant" }) or false,
+    selectField("rainbow", tr("panel.rainbow.label"), { tr("panel.rainbow.options.off"), tr("panel.rainbow.options.on") }, { false, true },
+      { enabled = ready() and not lightingOff }),
+    colorField("top_color", tr("panel.top_color.label"), false, lightingOff),
+    colorField("middle_color", tr("panel.middle_color.label"), false, lightingOff),
+    colorField("bottom_color", tr("panel.bottom_color.label"), false, lightingOff),
+    colorField("reactive_color", tr("panel.reactive_color.label"), true, lightingOff),
   })
 
   panel.render(ui.scroll({ flexGrow = 1 }, {

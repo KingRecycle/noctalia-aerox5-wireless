@@ -16,7 +16,8 @@
     "not_ready": "The mouse isn't reachable, so the change wasn't sent",
     "rivalcfg_failed": "rivalcfg failed: {message}",
     "rivalcfg_unknown": "rivalcfg failed with exit code {code}",
-    "rivalcfg_not_started": "Couldn't run rivalcfg ({path}). Check the rivalcfg path setting."
+    "rivalcfg_not_started": "Couldn't run rivalcfg ({path}). Check the rivalcfg path setting.",
+    "lighting_off": "Turn lighting on to change the colors"
   },
   "panel": {
     "refresh": "Check battery now",
@@ -117,6 +118,7 @@
       },
       "custom": "Custom",
       "placeholder": "Not set"
-    }
+    },
+    "lighting_off": "Lighting is off. Pick a lighting mode to change the colors."
   }
 }

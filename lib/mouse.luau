@@ -103,6 +103,25 @@ local function copy(s: Settings): Settings
 	return c
 end
 
+-- Appends the three zone colors, using rivalcfg's defaults for any never set,
+-- and stores the values sent.
+local function appendZones(s: Settings, new: Settings, args: { string })
+	for _, zone in ZONES do
+		local c = (s :: any)[zone]
+		if c == "" then
+			c = ZONE_DEFAULTS[zone]
+		end
+		(new :: any)[zone] = c
+		table.insert(args, ZONE_FLAGS[zone])
+		table.insert(args, c)
+	end
+end
+
+-- Settings the mouse can't show while lighting is off. Their saved values
+-- come back when a lighting mode is picked again.
+local LIGHTING_LOCKED = { top_color = true, middle_color = true, bottom_color = true, reactive_color = true, rainbow = true }
+local DARK = "#000000"
+
 local function fixedArg(dpi: string): string
 	return table.concat({ dpi, dpi, dpi, dpi, dpi }, ", ")
 end
@@ -218,6 +237,9 @@ end
 -- and the rivalcfg arguments, without the binary. On failure returns nil and
 -- "invalid" or "presets_locked".
 function M.change(s: Settings, key: string, value: any): (Settings?, { string } | string)
+	if s.default_lighting == "off" and LIGHTING_LOCKED[key] then
+		return nil, "lighting_off"
+	end
 	local new = copy(s)
 	if key == "presets" then
 		if not oneOf(M.PRESETS, value) then
@@ -273,7 +295,26 @@ function M.change(s: Settings, key: string, value: any): (Settings?, { string } 
 			return nil, "invalid"
 		end
 		new.default_lighting = value
-		return new, { "-d", value }
+		local args = { "-d", value }
+		if value == "off" and s.default_lighting ~= "off" then
+			-- -d only applies at the next power-on. Dark zones and no click
+			-- flash turn the LEDs off now, without losing the saved colors.
+			table.move({ "-a", "off" }, 1, 2, #args + 1, args)
+			for _, zone in ZONES do
+				table.insert(args, ZONE_FLAGS[zone])
+				table.insert(args, DARK)
+			end
+		elseif value ~= "off" and s.default_lighting == "off" then
+			-- Lighting comes back on: restore the saved click flash and colors.
+			table.insert(args, "-a")
+			table.insert(args, s.reactive_color)
+			if s.rainbow then
+				table.insert(args, "-e")
+			else
+				appendZones(s, new, args)
+			end
+		end
+		return new, args
 	elseif key == "rainbow" then
 		if type(value) ~= "boolean" then
 			return nil, "invalid"
@@ -283,15 +324,7 @@ function M.change(s: Settings, key: string, value: any): (Settings?, { string } 
 			return new, { "-e" }
 		end
 		local args = {}
-		for _, zone in ZONES do
-			local c = (s :: any)[zone]
-			if c == "" then
-				c = ZONE_DEFAULTS[zone]
-			end
-			(new :: any)[zone] = c
-			table.insert(args, ZONE_FLAGS[zone])
-			table.insert(args, c)
-		end
+		appendZones(s, new, args)
 		return new, args
 	end
 	return nil, "invalid"

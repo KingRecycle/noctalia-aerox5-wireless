@@ -27,6 +27,8 @@ Click the widget to open the panel. It shows the battery and every mouse setting
 
 A change reaches the mouse as soon as you pick it. Sliders and color fields wait until about one second after your last change, so dragging a slider sends one rivalcfg call, not dozens. Press Enter in a color field to send it at once.
 
+Picking Off under Default lighting turns the LEDs off right away, click flashes included, and they stay off after a restart. The plugin keeps your colors while lighting is off and grays out their controls. Pick any other lighting mode and your colors, reactive color and rainbow setting come back. rivalcfg's own lighting mode only applies at the next power-on, so the plugin sends dark zone colors and turns the click flash off to make Off take effect at once.
+
 Each color has a dropdown and a text field. The dropdown holds eight preset colors, four colors from your current Noctalia palette (primary, secondary, tertiary and error), and Custom. A palette pick sends the palette's color as it is right now. The mouse keeps that color when the theme changes later, because each re-send would be a rivalcfg call. The text field takes any name rivalcfg knows, like `red`, or hex like `#ff0000` or `#f00`.
 
 The controls turn off while the mouse is asleep or the dongle is unplugged. A sleeping mouse can miss a write that rivalcfg still reports as a success. Move the mouse and the controls come back within 10 seconds.

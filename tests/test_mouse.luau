@@ -196,6 +196,65 @@ function T.test_rainbow_off_keeps_colors()
 	A.eq({ args[1], args[2] }, { "--top-color", "#00ff00" })
 end
 
+local function lit(overrides)
+	return with({
+		top_color = "red",
+		middle_color = "lime",
+		bottom_color = "blue",
+		reactive_color = "#b0c6ff",
+		default_lighting = (overrides and overrides.default_lighting) or "reactive",
+		rainbow = (overrides and overrides.rainbow) or false,
+	})
+end
+
+function T.test_lighting_off_darkens()
+	local new, args = mouse.change(lit(), "default_lighting", "off")
+	A.eq(args, {
+		"-d", "off", "-a", "off",
+		"--top-color", "#000000", "--middle-color", "#000000", "--bottom-color", "#000000",
+	})
+	A.eq(new and new.default_lighting, "off")
+	-- The saved colors stay, so turning lighting back on restores them.
+	A.eq(new and new.top_color, "red")
+	A.eq(new and new.reactive_color, "#b0c6ff")
+end
+
+function T.test_lighting_on_restores_colors()
+	local _, args = mouse.change(lit({ default_lighting = "off" }), "default_lighting", "reactive")
+	A.eq(args, {
+		"-d", "reactive", "-a", "#b0c6ff",
+		"--top-color", "red", "--middle-color", "lime", "--bottom-color", "blue",
+	})
+end
+
+function T.test_lighting_on_restores_rainbow()
+	local _, args = mouse.change(lit({ default_lighting = "off", rainbow = true }), "default_lighting", "rainbow")
+	A.eq(args, { "-d", "rainbow", "-a", "#b0c6ff", "-e" })
+end
+
+function T.test_lighting_on_empty_colors_use_defaults()
+	local s = with({ default_lighting = "off" })
+	local new, args = mouse.change(s, "default_lighting", "reactive")
+	A.eq(args, {
+		"-d", "reactive", "-a", "off",
+		"--top-color", "red", "--middle-color", "lime", "--bottom-color", "blue",
+	})
+	A.eq(new and new.middle_color, "lime")
+end
+
+function T.test_mode_change_while_lit()
+	A.eq(select(2, mouse.change(lit(), "default_lighting", "rainbow")), { "-d", "rainbow" })
+end
+
+function T.test_colors_locked_when_off()
+	local s = lit({ default_lighting = "off" })
+	for _, case in { { "top_color", "red" }, { "reactive_color", "off" }, { "rainbow", true } } do
+		local new, err = mouse.change(s, case[1], case[2])
+		A.eq(new, nil, case[1])
+		A.eq(err, "lighting_off", case[1])
+	end
+end
+
 function T.test_unknown_key()
 	local new, err = mouse.change(mouse.defaults(), "dpi", 1)
 	A.eq(new, nil)
